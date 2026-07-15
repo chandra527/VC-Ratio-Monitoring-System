@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# Model AI
+models/*.pt
+
+# Dataset
+data/*.dav
+data/*.mp4
+data/*.avi
+
+# Temporary
+*.log
