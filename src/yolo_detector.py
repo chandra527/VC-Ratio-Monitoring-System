@@ -137,7 +137,7 @@ def draw_detection(frame, result):
         conf = float(box.conf[0])
 
         cls = int(box.cls[0])
-        print(box.id)
+        #print(box.id)
 
         track_id = None
 
@@ -152,7 +152,7 @@ def draw_detection(frame, result):
             continue
 
         label = VEHICLE_CLASSES[class_name]["label"]
-        print(f"ID = {track_id}, Label = {label}")
+        #print(f"ID = {track_id}, Label = {label}")
 
         if track_id is None:
             text = label
@@ -164,7 +164,7 @@ def draw_detection(frame, result):
 
         #text = f"{label} {conf*100:.0f}%"
         #text = label
-        print(text)
+        #print(text)
 
         draw_corner_box(
 

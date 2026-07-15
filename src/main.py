@@ -7,6 +7,11 @@ from utils import *
 from yolo_detector import detect, count_vehicle
 from yolo_detector import draw_detection
 from tracker import track
+from vehicle_tracker import VehicleTracker
+from line_counter import (
+    get_counting_line_y,
+    draw_counting_line
+)
 
 video = cv2.VideoCapture("data/pak_kasih.dav")
 
@@ -19,33 +24,47 @@ vehicle_data = create_vehicle_data()
 #panel_Traffic_Analysis
 traffic_data = create_traffic_data()
 
+#tracker = VehicleTracker()
+
+tracker = None
+
 #################
 
 while True:
-
+    
     ret, frame = video.read()
-    frame_ke += 1
 
     if not ret:
         break
 
-    #result = detect(frame)
+    frame_ke += 1
+
+    # Dibuat satu kali berdasarkan ukuran frame asli
+    if tracker is None:
+
+        line_y = get_counting_line_y(frame)
+
+        tracker = VehicleTracker(line_y)
+
     result = track(frame)
-    
-    vehicle_data = count_vehicle(result)
-    
+
+    tracker.update(result)
+
+    vehicle_data = tracker.get_vehicle_data()
+
     vehicle_data, traffic_data = update_traffic_data(
-
-    vehicle_data,
-
-    traffic_data
-
+        vehicle_data,
+        traffic_data
     )
-    
 
     frame = draw_detection(
-    frame,
-    result
+        frame,
+        result
+    )
+
+    frame = draw_counting_line(
+        frame,
+        tracker.line_y
     )
 
 

@@ -13,5 +13,5 @@ data/*.dav
 data/*.mp4
 data/*.avi
 
-# Temporary
+# Temporarygit push -u origin main
 *.log
