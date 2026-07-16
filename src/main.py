@@ -12,6 +12,8 @@ from line_counter import (
     get_counting_line_y,
     draw_counting_line
 )
+import time
+from csv_logger import CSVLogger
 
 video = cv2.VideoCapture("data/pak_kasih.dav")
 
@@ -42,6 +44,12 @@ cv2.moveWindow(
     10
 )
 
+csv_logger = CSVLogger()
+
+SAVE_INTERVAL_SECONDS = 60
+
+last_save_time = time.time()
+
 #################
 
 while True:
@@ -71,6 +79,21 @@ while True:
         vehicle_data,
         traffic_data
     )
+
+    current_time = time.time()
+
+    if (
+        current_time - last_save_time
+        >= SAVE_INTERVAL_SECONDS
+    ):
+
+        csv_logger.save(
+        vehicle_data,
+        traffic_data
+        )
+
+        last_save_time = current_time
+
 
     frame = draw_detection(
         frame,
