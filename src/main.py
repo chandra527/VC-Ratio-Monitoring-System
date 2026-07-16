@@ -10,11 +10,14 @@ from tracker import track
 from vehicle_tracker import VehicleTracker
 from line_counter import (
     get_counting_line_y,
-    draw_counting_line
+    draw_counting_line,
+    get_speed_line_a_y,
+    draw_speed_line_a
 )
 import time
 from csv_logger import CSVLogger
 from database_logger import DatabaseLogger
+from speed_estimator import SpeedEstimator
 
 
 
@@ -32,6 +35,7 @@ traffic_data = create_traffic_data()
 #tracker = VehicleTracker()
 
 tracker = None
+speed_estimator = None
 
 WINDOW_NAME = "VC Ratio Monitoring"
 
@@ -68,17 +72,39 @@ while True:
 
     if tracker is None:
 
-        line_y = get_counting_line_y(frame)
+        # Garis akhir speed sekaligus garis utama counting
+        line_b_y = get_counting_line_y(frame)
+
+        # Garis awal speed, 100 piksel di atas Line B
+        line_a_y = get_speed_line_a_y(line_b_y)
 
         tracker = VehicleTracker(
-            line_y=line_y
+        line_y=line_b_y
         )
+
+        speed_estimator = SpeedEstimator(
+        line_a_y=line_a_y,
+        line_b_y=line_b_y,
+        fps=fps,
+        distance_meters=10
+        )
+
+
 
     result = track(frame)
 
+    # Modul counting
     tracker.update(result)
 
+    # Modul speed, terpisah dari counting
+    speed_estimator.update(
+    result,
+    frame_ke
+    )
+
     vehicle_data = tracker.get_vehicle_data()
+
+
 
     vehicle_data, traffic_data = update_traffic_data(
         vehicle_data,
@@ -108,6 +134,11 @@ while True:
     frame = draw_detection(
         frame,
         result
+    )
+
+    frame = draw_speed_line_a(
+    frame,
+    speed_estimator.line_a_y
     )
 
     frame = draw_counting_line(

@@ -1,107 +1,102 @@
 # 🚦 VC Ratio Monitoring System
 
-Realtime Traffic Monitoring System menggunakan **YOLOv8**, **OpenCV**, dan **Python** untuk mendeteksi kendaraan serta menghitung Volume, Capacity, dan VC Ratio dari rekaman CCTV.
+Realtime Traffic Monitoring System menggunakan **YOLOv8**, **OpenCV**, dan **Python** untuk mendeteksi kendaraan, menghitung volume lalu lintas, VC Ratio, serta mengestimasi kecepatan kendaraan dari rekaman CCTV.
 
 ---
 
-## 📖 Tentang Project
+# 📖 About Project
 
-Project ini dikembangkan sebagai media pembelajaran Computer Vision sekaligus prototype sistem analisis lalu lintas.
+Project ini dikembangkan sebagai media pembelajaran Computer Vision sekaligus prototype sistem monitoring lalu lintas yang dipersiapkan menuju implementasi pada lingkungan Dishub.
 
-Tujuan utama project adalah membangun sistem yang mampu:
+Project dibangun secara modular sehingga setiap fitur dapat dikembangkan tanpa mengganggu modul lainnya.
 
-- Mendeteksi kendaraan secara otomatis dari video CCTV
-- Menghitung jumlah kendaraan berdasarkan jenisnya
-- Menghitung Volume lalu lintas
-- Menghitung VC Ratio (Volume / Capacity)
-- Menampilkan Dashboard Monitoring secara realtime
+---
 
-Project ini akan terus dikembangkan menuju sistem Traffic Monitoring yang lebih lengkap.
+# 🎯 Tujuan Project
+
+- Deteksi kendaraan secara realtime
+- Multi Object Tracking menggunakan ByteTrack
+- Vehicle Counting berdasarkan Tracking ID
+- Menghitung Volume Kendaraan
+- Menghitung VC Ratio
+- Estimasi Kecepatan Kendaraan
+- Menampilkan Dashboard Monitoring
+- Menyimpan data ke CSV
+- Menyimpan data ke SQLite Database
 
 ---
 
 # 📸 Dashboard
 
-*(Tambahkan screenshot dashboard di sini setelah project di-upload ke GitHub)*
+> *(Screenshot dashboard akan ditambahkan setelah tampilan final selesai.)*
 
 ---
 
-# ✨ Fitur yang Sudah Selesai
-
-## Dashboard
-- ✅ Dashboard Monitoring
-- ✅ Informasi Sistem
-- ✅ Panel Vehicle Count
-- ✅ Panel Traffic Analysis
+# ✨ Features
 
 ## Computer Vision
-- ✅ Integrasi YOLOv8
-- ✅ Vehicle Detection
+
+- ✅ OpenCV Video Streaming
+- ✅ YOLOv8 Vehicle Detection
 - ✅ Bounding Box
-- ✅ Label Kendaraan
+- ✅ Vehicle Label
+- ✅ ByteTrack Multi Object Tracking
+
+---
 
 ## Traffic Analysis
+
 - ✅ Vehicle Counting
+- ✅ Vehicle Classification Voting
 - ✅ Traffic Volume
 - ✅ Capacity
 - ✅ VC Ratio
 - ✅ Traffic Status
+- ✅ Speed Estimation
+
+---
+
+## Data Logging
+
+- ✅ CSV Logger
+- ✅ SQLite Database Logger
+
+---
+
+## Dashboard
+
+- ✅ Professional Dashboard
+- ✅ Camera View
+- ✅ Vehicle Count Panel
+- ✅ Traffic Analysis Panel
+- ✅ System Information
+
+---
 
 ## Software Engineering
-- ✅ Struktur Project Modular
-- ✅ Refactoring Source Code
-- ✅ Git Repository
+
+- ✅ Modular Architecture
+- ✅ Refactoring
+- ✅ Git Version Control
+- ✅ GitHub Repository
+- ✅ Project Documentation
 
 ---
 
-# 🚧 Roadmap
+# 📂 Project Structure
 
-## Sprint 1
-- ✅ Dashboard Layout
-
-## Sprint 2
-- ✅ YOLOv8 Integration
-- ✅ Vehicle Detection
-
-## Sprint 3
-- ✅ Vehicle Counting
-- ✅ VC Ratio Dashboard
-
-## Sprint 4
-- ✅ Refactoring Project
-- ✅ Stable Detection
-- ✅ Git Integration
-
-## Sprint 5 (Sedang Dikerjakan)
-- ⏳ Tracking ID
-- ⏳ Virtual Line Counter
-- ⏳ Counting by Vehicle ID
-
-## Sprint 6
-- ⏳ Vehicle Speed Estimation
-
-## Sprint 7
-- ⏳ Data Logging
-
-## Sprint 8
-- ⏳ Database Integration
-
-## Sprint 9
-- ⏳ Export Excel Report
-
-## Sprint 10
-- ⏳ Web Dashboard
-
----
-
-# 🗂️ Struktur Project
-
-```
+```text
 VC_RATIO_PROJECT_NEW
 │
 ├── data/
 │
+├── docs/
+│   ├── Progress_Report.md
+│   └── Architecture.md
+│
 ├── models/
+│
+├── output/
 │
 ├── src/
 │   ├── main.py
@@ -111,6 +106,11 @@ VC_RATIO_PROJECT_NEW
 │   ├── utils.py
 │   ├── yolo_detector.py
 │   ├── tracker.py
+│   ├── vehicle_tracker.py
+│   ├── line_counter.py
+│   ├── speed_estimator.py
+│   ├── csv_logger.py
+│   └── database_logger.py
 │
 ├── requirements.txt
 └── README.md
@@ -118,28 +118,32 @@ VC_RATIO_PROJECT_NEW
 
 ---
 
-# 🛠️ Teknologi
+# 🛠 Technologies
 
 - Python
 - OpenCV
 - YOLOv8 (Ultralytics)
+- ByteTrack
+- SQLite
+- CSV
 - NumPy
 - Git
+- GitHub
 
 ---
 
-# 🚀 Cara Menjalankan
+# 🚀 Installation
 
-## Clone Repository
+Clone repository
 
 ```bash
-git clone https://github.com/USERNAME/VC_RATIO_PROJECT_NEW.git
+git clone https://github.com/chandra527/VC-Ratio-Monitoring-System.git
 ```
 
 Masuk ke folder project
 
 ```bash
-cd VC_RATIO_PROJECT_NEW
+cd VC-Ratio-Monitoring-System
 ```
 
 Install dependency
@@ -148,7 +152,7 @@ Install dependency
 pip install -r requirements.txt
 ```
 
-Jalankan program
+Jalankan aplikasi
 
 ```bash
 python src/main.py
@@ -156,18 +160,68 @@ python src/main.py
 
 ---
 
-# 📌 Catatan
+# 📈 Development Roadmap
 
-Project ini masih dalam tahap pengembangan.
+## ✅ Completed
 
-Beberapa fitur seperti Tracking ID, Line Crossing Counter, Vehicle Speed Estimation, dan Database akan ditambahkan pada sprint berikutnya.
+- OpenCV Streaming
+- Dashboard
+- YOLOv8 Detection
+- ByteTrack Tracking
+- Vehicle Counting
+- Traffic Volume
+- VC Ratio
+- CSV Logger
+- SQLite Database
+- Speed Estimation
 
 ---
 
-# 👨‍💻 Author
+## 🚧 Next Development
+
+- Speed Overlay
+- Average Speed Dashboard
+- Vehicle Log
+- Live CCTV (RTSP)
+- Server Deployment
+- Database Online
+- Web Dashboard
+
+---
+
+# 📚 Documentation
+
+Project documentation tersedia pada folder:
+
+```text
+docs/
+```
+
+- Progress_Report.md
+- Architecture.md
+
+---
+
+# 👨‍💻 Developer
 
 **Eggi Chandra**
 
-Teknik Informatika
+Bachelor of Informatics Engineering
 
 Indonesia
+
+---
+
+# ⭐ Current Version
+
+**Version 0.8**
+
+Milestone:
+
+- Vehicle Detection
+- Tracking
+- Vehicle Counting
+- VC Ratio
+- CSV Logger
+- SQLite Database
+- Speed Estimation
