@@ -14,6 +14,9 @@ from line_counter import (
 )
 import time
 from csv_logger import CSVLogger
+from database_logger import DatabaseLogger
+
+
 
 video = cv2.VideoCapture("data/pak_kasih.dav")
 
@@ -45,6 +48,8 @@ cv2.moveWindow(
 )
 
 csv_logger = CSVLogger()
+
+database_logger = DatabaseLogger()
 
 SAVE_INTERVAL_SECONDS = 60
 
@@ -88,6 +93,11 @@ while True:
     ):
 
         csv_logger.save(
+        vehicle_data,
+        traffic_data
+        )
+
+        database_logger.save(
         vehicle_data,
         traffic_data
         )
