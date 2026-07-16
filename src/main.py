@@ -28,10 +28,24 @@ traffic_data = create_traffic_data()
 
 tracker = None
 
+WINDOW_NAME = "VC Ratio Monitoring"
+
+cv2.namedWindow(
+    WINDOW_NAME,
+    cv2.WINDOW_AUTOSIZE
+)
+
+
+cv2.moveWindow(
+    WINDOW_NAME,
+    10,
+    10
+)
+
 #################
 
 while True:
-    
+
     ret, frame = video.read()
 
     if not ret:
@@ -39,12 +53,13 @@ while True:
 
     frame_ke += 1
 
-    # Dibuat satu kali berdasarkan ukuran frame asli
     if tracker is None:
 
         line_y = get_counting_line_y(frame)
 
-        tracker = VehicleTracker(line_y)
+        tracker = VehicleTracker(
+            line_y=line_y
+        )
 
     result = track(frame)
 
@@ -69,29 +84,24 @@ while True:
 
 
     tinggi, lebar = frame.shape[:2]
-        
-    gray = convert_to_gray(frame)
 
     frame_kecil = resize_frame(frame)
 
-    gray_kecil = resize_frame(gray)
-
     dashboard = create_dashboard()
-        
-    # Tempel video kiri & kanan
+
+    # Tempel satu video utama
     dashboard = draw_video(
     dashboard,
-    frame_kecil,
-    gray_kecil
+    frame_kecil
     )
 
-    # Bingkai video kiri & kanan
+    # Bingkai video utama
     dashboard = draw_video_frame(dashboard)
-    
-    #line
+
+    # Garis layout
     dashboard = draw_lines(dashboard)
 
-    #judul_header
+    # Header
     dashboard = draw_header(dashboard)
 
     # ==========================
@@ -106,14 +116,20 @@ while True:
     )
 
     
-    dashboard = draw_vehicle_panel(
-    dashboard,
-    vehicle_data
-    )
+    #dashboard = draw_vehicle_panel(
+    #dashboard,
+    #vehicle_data
+    #)
 
             
-    dashboard = draw_analysis_panel(
+    #dashboard = draw_analysis_panel(
+    #dashboard,
+    #traffic_data
+    #)
+
+    dashboard = draw_compact_summary(
     dashboard,
+    vehicle_data,
     traffic_data
     )
     
@@ -122,7 +138,7 @@ while True:
 
      
     # Menampilkan dashboard
-    cv2.imshow("VC Ratio Monitoring", dashboard)
+    cv2.imshow(WINDOW_NAME, dashboard)
 
     # Keluar jika tombol q ditekan
     if cv2.waitKey(25) & 0xFF == ord("q"):

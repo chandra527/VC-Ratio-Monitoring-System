@@ -22,19 +22,13 @@ def create_dashboard():
 
 def draw_video(
     dashboard,
-    frame_kecil,
-    gray_kecil
+    frame_kecil
 ):
 
     dashboard[
-        VIDEO_LEFT_Y:VIDEO_LEFT_Y + VIDEO_HEIGHT,
-        VIDEO_LEFT_X:VIDEO_LEFT_X + VIDEO_WIDTH
+        VIDEO_Y:VIDEO_Y + VIDEO_HEIGHT,
+        VIDEO_X:VIDEO_X + VIDEO_WIDTH
     ] = frame_kecil
-
-    dashboard[
-        VIDEO_RIGHT_Y:VIDEO_RIGHT_Y + VIDEO_HEIGHT,
-        VIDEO_RIGHT_X:VIDEO_RIGHT_X + VIDEO_WIDTH
-    ] = gray_kecil
 
     return dashboard
 
@@ -47,22 +41,17 @@ def draw_video_frame(dashboard):
 
     cv2.rectangle(
         dashboard,
-        (VIDEO_LEFT_X-2, VIDEO_LEFT_Y-2),
-        (
-            VIDEO_LEFT_X + VIDEO_WIDTH + 2,
-            VIDEO_LEFT_Y + VIDEO_HEIGHT + 2
-        ),
-        WHITE,
-        THICKNESS_BORDER
-    )
 
-    cv2.rectangle(
-        dashboard,
-        (VIDEO_RIGHT_X-2, VIDEO_RIGHT_Y-2),
         (
-            VIDEO_RIGHT_X + VIDEO_WIDTH + 2,
-            VIDEO_RIGHT_Y + VIDEO_HEIGHT + 2
+            VIDEO_X - 2,
+            VIDEO_Y - 2
         ),
+
+        (
+            VIDEO_X + VIDEO_WIDTH + 2,
+            VIDEO_Y + VIDEO_HEIGHT + 2
+        ),
+
         WHITE,
         THICKNESS_BORDER
     )
@@ -77,42 +66,29 @@ def draw_video_frame(dashboard):
 def draw_lines(dashboard):
 
     horizontal_lines = [
-
         LINE_HEADER,
         LINE_VIDEO,
         LINE_INFO,
-        LINE_PANEL
-
+        SUMMARY_LINE_BOTTOM_Y
     ]
 
     for y in horizontal_lines:
 
         cv2.line(
-
             dashboard,
-
             (0, y),
-
             (DASHBOARD_WIDTH, y),
-
             WHITE,
-
             THICKNESS_LINE
-
         )
 
+    # Garis vertikal pemisah dua kelompok ringkasan
     cv2.line(
-
         dashboard,
-
-        (LINE_MIDDLE, LINE_INFO),
-
-        (LINE_MIDDLE, MID_LINE_END_Y),
-
+        (SUMMARY_MIDDLE_X, LINE_INFO),
+        (SUMMARY_MIDDLE_X, SUMMARY_LINE_BOTTOM_Y),
         WHITE,
-
         THICKNESS_LINE
-
     )
 
     return dashboard
@@ -124,104 +100,82 @@ def draw_lines(dashboard):
 
 def draw_header(dashboard):
 
+    # Judul utama
     text = "VC RATIO MONITORING SYSTEM"
 
     text_size, _ = cv2.getTextSize(
-    text,
-    cv2.FONT_HERSHEY_DUPLEX,
-    FONT_TITLE,
-    THICKNESS_TITLE
+        text,
+        cv2.FONT_HERSHEY_DUPLEX,
+        FONT_TITLE,
+        THICKNESS_TITLE
     )
 
     title_x = get_center_x(
-    DASHBOARD_WIDTH,
-    text_size[0]
+        DASHBOARD_WIDTH,
+        text_size[0]
     )
 
     cv2.putText(
-
         dashboard,
-
         text,
-
         (title_x, TITLE_Y),
-
         cv2.FONT_HERSHEY_DUPLEX,
-
         FONT_TITLE,
-
         YELLOW,
-
         THICKNESS_TITLE
-
     )
 
+    # Nama kamera
     text = "Camera : Jl. Pak Kasih"
 
     text_size, _ = cv2.getTextSize(
-    text,
-    cv2.FONT_HERSHEY_SIMPLEX,
-    FONT_FOOTER,
-    THICKNESS_FOOTER
+        text,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        FONT_FOOTER,
+        THICKNESS_FOOTER
     )
 
     camera_x = get_center_x(
-    DASHBOARD_WIDTH,
-    text_size[0]
+        DASHBOARD_WIDTH,
+        text_size[0]
     )
 
     cv2.putText(
-
         dashboard,
-
         text,
-
         (camera_x, CAMERA_Y),
-
         cv2.FONT_HERSHEY_SIMPLEX,
-
         FONT_FOOTER,
-
         GRAY,
-
         THICKNESS_FOOTER
+    )
 
+    # Judul video utama
+    video_title = "LIVE TRAFFIC CAMERA"
+
+    video_title_size, _ = cv2.getTextSize(
+        video_title,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        FONT_SUBTITLE,
+        THICKNESS_TEXT
+    )
+
+    video_title_x = (
+        VIDEO_X
+        + get_center_x(
+            VIDEO_WIDTH,
+            video_title_size[0]
+        )
     )
 
     cv2.putText(
-
         dashboard,
-
-        "CAMERA VIEW",
-
-        (LEFT_TITLE_X, LEFT_TITLE_Y),
-
+        video_title,
+        (video_title_x, VIDEO_TITLE_Y),
         cv2.FONT_HERSHEY_SIMPLEX,
-
         FONT_SUBTITLE,
-
         GREEN,
-
         THICKNESS_TEXT
-
-    )
-
-    cv2.putText(
-
-        dashboard,
-
-        "IMAGE PROCESSING",
-
-        (RIGHT_TITLE_X, RIGHT_TITLE_Y),
-
-        cv2.FONT_HERSHEY_SIMPLEX,
-
-        FONT_SUBTITLE,
-
-        GREEN,
-
-        THICKNESS_TEXT
-
     )
 
     return dashboard
@@ -624,5 +578,163 @@ def draw_footer(dashboard):
         THICKNESS_FOOTER
 
     )
+
+    return dashboard
+
+def draw_compact_summary(
+    dashboard,
+    vehicle_data,
+    traffic_data
+):
+
+    # =====================================
+    # JUDUL PANEL
+    # =====================================
+
+    vehicle_title = "VEHICLE COUNT"
+
+    vehicle_title_size, _ = cv2.getTextSize(
+        vehicle_title,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.48,
+        1
+    )
+
+    vehicle_title_x = get_center_x(
+        SUMMARY_MIDDLE_X,
+        vehicle_title_size[0]
+    )
+
+    cv2.putText(
+        dashboard,
+        vehicle_title,
+        (vehicle_title_x, SUMMARY_TITLE_Y),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.48,
+        YELLOW,
+        1
+    )
+
+    traffic_title = "TRAFFIC ANALYSIS"
+
+    traffic_title_size, _ = cv2.getTextSize(
+        traffic_title,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.48,
+        1
+    )
+
+    traffic_title_x = (
+        SUMMARY_MIDDLE_X
+        + get_center_x(
+            DASHBOARD_WIDTH - SUMMARY_MIDDLE_X,
+            traffic_title_size[0]
+        )
+    )
+
+    cv2.putText(
+        dashboard,
+        traffic_title,
+        (traffic_title_x, SUMMARY_TITLE_Y),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.48,
+        YELLOW,
+        1
+    )
+
+    # =====================================
+    # VEHICLE COUNT
+    # =====================================
+
+    vehicle_columns = [
+        (35,  "Motor", vehicle_data["motor"]),
+        (130, "Mobil", vehicle_data["mobil"]),
+        (225, "Bus",   vehicle_data["bus"]),
+        (315, "Truk",  vehicle_data["truk"]),
+        (400, "Total", vehicle_data["total"])
+    ]
+
+    for x, label, value in vehicle_columns:
+
+        label_text = f"{label}:"
+
+        cv2.putText(
+            dashboard,
+            label_text,
+            (x, SUMMARY_VALUE_Y),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.40,
+            WHITE,
+            1
+        )
+
+        label_size, _ = cv2.getTextSize(
+            label_text,
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.40,
+            1
+        )
+
+        cv2.putText(
+            dashboard,
+            str(value),
+            (x + label_size[0] + 8, SUMMARY_VALUE_Y),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.48,
+            GREEN,
+            2
+        )
+
+    # =====================================
+    # TRAFFIC ANALYSIS
+    # =====================================
+
+    traffic_columns = [
+        (500, "Volume",   traffic_data["volume"], GREEN),
+        (610, "Capacity", traffic_data["capacity"], GREEN),
+        (
+            735,
+            "V/C",
+            f'{traffic_data["vc_ratio"]:.2f}',
+            GREEN
+        ),
+        (
+            840,
+            "Status",
+            traffic_data["status"],
+            traffic_data["warna_status"]
+        )
+    ]
+
+    for x, label, value, value_color in traffic_columns:
+
+        label_text = f"{label}:"
+
+        cv2.putText(
+            dashboard,
+            label_text,
+            (x, SUMMARY_VALUE_Y),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.38,
+            WHITE,
+            1
+        )
+
+        label_size, _ = cv2.getTextSize(
+            label_text,
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.38,
+            1
+        )
+
+        cv2.putText(
+            dashboard,
+            str(value),
+            (x + label_size[0] + 6, SUMMARY_VALUE_Y),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            value_color,
+            2
+        )
 
     return dashboard

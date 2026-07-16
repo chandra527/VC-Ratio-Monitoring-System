@@ -31,7 +31,7 @@ def draw_counting_line(frame, line_y):
         1
     )
 
-    # Garis hitung utama
+    # Garis utama
     cv2.line(
         frame,
         (0, line_y),

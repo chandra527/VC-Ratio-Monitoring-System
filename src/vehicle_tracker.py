@@ -9,23 +9,23 @@ class VehicleTracker:
     def __init__(
         self,
         line_y,
-        line_tolerance=50,
+        line_tolerance=35,
         min_track_frames=3
     ):
 
         # Posisi utama garis hitung
         self.line_y = line_y
 
-        # Lebar toleransi di sekitar garis
+        # Lebar zona toleransi di sekitar garis
         self.line_tolerance = line_tolerance
 
-        # Minimal jumlah frame sebelum sebuah ID boleh dihitung
+        # Minimal jumlah frame agar ID dianggap stabil
         self.min_track_frames = min_track_frames
 
         # Jumlah kemunculan setiap tracking ID
         self.track_frames = {}
 
-        # Riwayat hasil klasifikasi untuk setiap tracking ID
+        # Voting jenis kendaraan setiap ID
         self.class_votes = {}
 
         # ID yang pernah terlihat sebelum zona hitung
@@ -34,7 +34,7 @@ class VehicleTracker:
         # ID yang sudah dihitung
         self.crossed_ids = set()
 
-        # Rekap kendaraan yang melewati garis
+        # Rekap kendaraan yang sudah memasuki zona
         self.vehicle_count = {
             "motor": 0,
             "mobil": 0,
@@ -50,7 +50,7 @@ class VehicleTracker:
 
         for box in result.boxes:
 
-            # Objek yang belum memperoleh tracking ID dilewati
+            # Lewati objek yang belum mendapat tracking ID
             if box.id is None:
                 continue
 
@@ -65,32 +65,30 @@ class VehicleTracker:
 
             detected_key = VEHICLE_CLASSES[class_name]["key"]
 
-            # Hitung berapa frame ID ini sudah terlihat
+            # Hitung jumlah frame kemunculan ID
             self.track_frames[track_id] = (
                 self.track_frames.get(track_id, 0) + 1
             )
 
-            # Siapkan penyimpanan voting kelas
+            # Siapkan voting kelas untuk ID ini
             if track_id not in self.class_votes:
                 self.class_votes[track_id] = Counter()
 
-            # Tambahkan satu suara untuk kelas yang terdeteksi
             self.class_votes[track_id][detected_key] += 1
 
-            # Pilih kelas yang paling sering muncul untuk ID ini
+            # Pilih kelas yang paling sering muncul
             key = self.class_votes[track_id].most_common(1)[0][0]
 
             # Ambil koordinat bounding box
             x1, y1, x2, y2 = map(int, box.xyxy[0])
 
-            # Bagian bawah box dianggap sebagai posisi kendaraan di jalan
+            # Posisi bawah box dianggap sebagai posisi kendaraan di jalan
             current_y = y2
 
-            # Kendaraan harus pernah terlihat sebelum zona hitung
+            # Tandai bahwa kendaraan pernah berada di atas zona
             if current_y < zone_top:
                 self.seen_above.add(track_id)
 
-            # Syarat kendaraan boleh dihitung
             track_is_stable = (
                 self.track_frames[track_id]
                 >= self.min_track_frames

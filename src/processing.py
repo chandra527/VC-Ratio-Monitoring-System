@@ -20,15 +20,11 @@ def convert_to_gray(frame):
 #2
 def resize_frame(frame):
 
-    frame_resize = cv2.resize(
+    return cv2.resize(
         frame,
-        (
-            VIDEO_WIDTH,
-            VIDEO_HEIGHT
-        )
+        (VIDEO_WIDTH, VIDEO_HEIGHT)
     )
 
-    return frame_resize
 
 #3
 def copy_frame(frame):
