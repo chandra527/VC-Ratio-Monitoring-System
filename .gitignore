@@ -15,3 +15,7 @@ data/*.avi
 
 # Temporarygit push -u origin main
 *.log
+
+# Runtime output
+output/*.csv
+output/*.db
