@@ -121,3 +121,13 @@ class VehicleTracker:
     def get_vehicle_data(self):
 
         return self.vehicle_count.copy()
+    
+
+    def get_vehicle_label(self, track_id):
+
+        if track_id not in self.class_votes:
+            return None
+
+        key = self.class_votes[track_id].most_common(1)[0][0]
+
+        return key

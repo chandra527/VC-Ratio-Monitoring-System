@@ -2,7 +2,8 @@ from ultralytics import YOLO
 import cv2
 from layout import *
 
-model = YOLO("models/yolov8n.pt")
+#model = YOLO("models/yolov8n.pt")
+model = YOLO("models/yolov8s.pt")
 
 CLASS_NAMES = model.names
 
@@ -128,70 +129,84 @@ def draw_corner_box(frame, x1, y1, x2, y2):
     cv2.line(frame,(x2,y2),(x2-l,y2),c,t)
     cv2.line(frame,(x2,y2),(x2,y2-l),c,t)
 
-def draw_detection(frame, result):
+def draw_detection(
+    frame,
+    result,
+    speed_estimator=None,
+    vehicle_tracker=None
+):
 
     for box in result.boxes:
 
-        x1,y1,x2,y2 = map(int, box.xyxy[0])
+        x1, y1, x2, y2 = map(
+            int,
+            box.xyxy[0]
+        )
 
         conf = float(box.conf[0])
 
         cls = int(box.cls[0])
-        #print(box.id)
 
         track_id = None
 
         if box.id is not None:
             track_id = int(box.id[0])
 
-        
         class_name = CLASS_NAMES[cls]
 
-        
         if class_name not in VEHICLE_CLASSES:
             continue
 
-        label = VEHICLE_CLASSES[class_name]["label"]
-        #print(f"ID = {track_id}, Label = {label}")
-
-        if track_id is None:
-            text = label
-            
+        #label = VEHICLE_CLASSES[class_name]["label"]
+        if vehicle_tracker is not None and track_id is not None:
+            stable_label = vehicle_tracker.get_vehicle_label(track_id)
         else:
-            text = f"{label} #{track_id}"
+            stable_label = None
             
-                        
+        if stable_label is None:
+            label = VEHICLE_CLASSES[class_name]["label"]
+        else:
+            label = stable_label
 
-        #text = f"{label} {conf*100:.0f}%"
-        #text = label
-        #print(text)
+        # Jika belum memiliki Tracking ID
+        if track_id is None:
+
+            text = label
+
+        else:
+
+            text = f"{label} #{track_id}"
+
+            # Ambil speed berdasarkan Tracking ID
+            if speed_estimator is not None:
+
+                speed = speed_estimator.get_speed(
+                    track_id
+                )
+
+                # Speed baru ditampilkan setelah
+                # kendaraan selesai melewati Line B
+                if speed is not None:
+
+                    text = (
+                        f"{label} #{track_id} | "
+                        f"{speed:.1f} km/jam"
+                    )
 
         draw_corner_box(
-
             frame,
-
             x1,
-
             y1,
-
             x2,
-
             y2
-
         )
 
         draw_label(
-
-            frame,
-
+            frame,  
             text,
-
             x1,
-
             y1
-
         )
-       
 
     return frame
 

@@ -225,3 +225,16 @@ Milestone:
 - CSV Logger
 - SQLite Database
 - Speed Estimation
+
+
+## Features
+
+- Vehicle Detection (YOLOv8)
+- Multi Object Tracking (ByteTrack)
+- Vehicle Counting
+- Speed Estimation
+- VC Ratio Calculation
+- Traffic Status Classification
+- CSV Logging
+- MySQL Database Logging
+

@@ -19,3 +19,6 @@ data/*.avi
 # Runtime output
 output/*.csv
 output/*.db
+
+#DB
+.env

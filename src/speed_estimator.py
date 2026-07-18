@@ -43,7 +43,8 @@ class SpeedEstimator:
     def update(
         self,
         result,
-        frame_ke
+        frame_ke,
+        vehicle_tracker=None
     ):
 
         for box in result.boxes:
@@ -61,7 +62,18 @@ class SpeedEstimator:
             if class_name not in VEHICLE_CLASSES:
                 continue
 
+            # Label mentah dari YOLO sebagai fallback
             vehicle_key = VEHICLE_CLASSES[class_name]["key"]
+            vehicle_label = VEHICLE_CLASSES[class_name]["label"]
+            
+            # Ambil label stabil hasil voting VehicleTracker
+            if vehicle_tracker is not None:
+                stable_label = vehicle_tracker.get_vehicle_label(
+                    track_id
+                    )
+
+                if  stable_label is not None:
+                    vehicle_label = stable_label
             
             # Ambil bounding box
             x1, y1, x2, y2 = map(
@@ -105,7 +117,7 @@ class SpeedEstimator:
 
                 print(
                     f"SPEED LINE A: "
-                    f"{vehicle_key} "
+                    f"{vehicle_label} "
                     f"ID #{track_id} "
                     f"Frame {frame_ke}"
                 )
@@ -158,7 +170,7 @@ class SpeedEstimator:
 
                     print(
                         f"KECEPATAN ESTIMASI: "
-                        f"{vehicle_key} "
+                        f"{vehicle_label} "
                         f"ID #{track_id} "
                         f"{speed_kmh:.1f} km/jam "
                         f"({travel_time_seconds:.2f} detik)"

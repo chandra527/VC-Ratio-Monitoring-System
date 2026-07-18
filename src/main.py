@@ -93,13 +93,14 @@ while True:
 
     result = track(frame)
 
-    # Modul counting
+    # VehicleTracker melakukan voting lebih dahulu
     tracker.update(result)
 
-    # Modul speed, terpisah dari counting
+    # SpeedEstimator mengambil hasil voting tersebut
     speed_estimator.update(
     result,
-    frame_ke
+    frame_ke,
+    tracker
     )
 
     vehicle_data = tracker.get_vehicle_data()
@@ -133,12 +134,14 @@ while True:
 
     frame = draw_detection(
         frame,
-        result
+        result,
+        speed_estimator,
+        tracker
     )
 
     frame = draw_speed_line_a(
-    frame,
-    speed_estimator.line_a_y
+        frame,
+        speed_estimator.line_a_y
     )
 
     frame = draw_counting_line(
