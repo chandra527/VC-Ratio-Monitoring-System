@@ -1,9 +1,18 @@
 from ultralytics import YOLO
 import cv2
 from layout import *
+from config import (
+    MODEL_PATH,
+    IMAGE_SIZE,
+    CONFIDENCE,
+    DEVICE
+)
 
+model = YOLO(
+    MODEL_PATH
+)
 #model = YOLO("models/yolov8n.pt")
-model = YOLO("models/yolov8s.pt")
+#model = YOLO("models/yolov8s.pt")
 
 CLASS_NAMES = model.names
 
@@ -58,16 +67,15 @@ VEHICLE_CLASSES = {
 
 def detect(frame):
 
-    #results = model(frame)
     results = model(
 
         frame,
 
-        imgsz=960,
+        imgsz=IMAGE_SIZE,
 
-        conf=0.15,
+        conf=CONFIDENCE,
 
-        verbose=False
+        device=DEVICE
     )
 
     return results[0]

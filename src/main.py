@@ -18,10 +18,12 @@ import time
 from csv_logger import CSVLogger
 from database_logger import DatabaseLogger
 from speed_estimator import SpeedEstimator
+from config import VIDEO_PATH
 
+video = cv2.VideoCapture(
+    VIDEO_PATH
+)
 
-
-video = cv2.VideoCapture("data/pak_kasih.dav")
 
 frame_ke = 0
 fps = video.get(cv2.CAP_PROP_FPS)
