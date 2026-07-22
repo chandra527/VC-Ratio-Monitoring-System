@@ -8,6 +8,10 @@ from config import (
     DEVICE
 )
 
+from utils import get_selected_device
+
+SELECTED_DEVICE = get_selected_device()
+
 model = YOLO(
     MODEL_PATH
 )
@@ -64,7 +68,6 @@ VEHICLE_CLASSES = {
 
 }
 
-
 def detect(frame):
 
     results = model(
@@ -75,7 +78,10 @@ def detect(frame):
 
         conf=CONFIDENCE,
 
-        device=DEVICE
+        device=SELECTED_DEVICE,
+
+        verbose=False
+
     )
 
     return results[0]

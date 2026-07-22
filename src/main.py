@@ -4,6 +4,7 @@ from layout import *
 from draw import *
 from processing import *
 from utils import *
+from utils import show_banner
 from yolo_detector import detect, count_vehicle
 from yolo_detector import draw_detection
 from tracker import track
@@ -19,6 +20,9 @@ from csv_logger import CSVLogger
 from database_logger import DatabaseLogger
 from speed_estimator import SpeedEstimator
 from config import VIDEO_PATH
+
+selected_device = get_selected_device()
+show_banner(selected_device)
 
 video = cv2.VideoCapture(
     VIDEO_PATH
