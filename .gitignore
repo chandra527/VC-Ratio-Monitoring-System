@@ -22,3 +22,7 @@ output/*.db
 
 #DB
 .env
+
+# Benchmark Output
+benchmark/raw/*.json
+benchmark/raw/*.csv
