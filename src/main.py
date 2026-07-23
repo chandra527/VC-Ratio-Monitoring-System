@@ -1,4 +1,6 @@
 import cv2
+import time
+import os
 #import numpy as np
 from layout import *
 from draw import *
@@ -15,11 +17,13 @@ from line_counter import (
     get_speed_line_a_y,
     draw_speed_line_a
 )
-import time
+
+
 from csv_logger import CSVLogger
 from database_logger import DatabaseLogger
 from speed_estimator import SpeedEstimator
-from config import VIDEO_PATH
+from config import VIDEO_PATH, MODEL_PATH
+
 
 selected_device = get_selected_device()
 show_banner(selected_device)
@@ -65,6 +69,10 @@ SAVE_INTERVAL_SECONDS = 60
 
 last_save_time = time.time()
 
+benchmark_start_time = time.perf_counter()
+
+benchmark_completed = False
+
 #################
 
 while True:
@@ -72,6 +80,7 @@ while True:
     ret, frame = video.read()
 
     if not ret:
+        benchmark_completed = True
         break
 
     frame_ke += 1
@@ -216,6 +225,90 @@ while True:
     # Keluar jika tombol q ditekan
     if cv2.waitKey(25) & 0xFF == ord("q"):
         break
+
+benchmark_processing_seconds = (
+    time.perf_counter() - benchmark_start_time
+)
+
+benchmark_average_fps = (
+    frame_ke / benchmark_processing_seconds
+    if benchmark_processing_seconds > 0
+    else 0.0
+)
+
+benchmark_status = (
+    "COMPLETED"
+    if benchmark_completed
+    else "STOPPED_BY_USER"
+)
+
+
+if frame_ke > 0:
+
+    benchmark_processing_seconds = (
+        time.perf_counter() - benchmark_start_time
+    )
+
+    benchmark_average_fps = (
+        frame_ke / benchmark_processing_seconds
+        if benchmark_processing_seconds > 0
+        else 0.0
+    )
+
+    benchmark_status = (
+        "COMPLETED"
+        if benchmark_completed
+        else "STOPPED_BY_USER"
+    )
+
+    database_logger.save_benchmark(
+        model_name=os.path.basename(str(MODEL_PATH)),
+        video_name=os.path.basename(str(VIDEO_PATH)),
+        device=str(selected_device),
+        run_status=benchmark_status,
+        processed_frames=frame_ke,
+        source_fps=fps,
+        processing_seconds=benchmark_processing_seconds,
+        average_fps=benchmark_average_fps,
+        vehicle_data=vehicle_data,
+        traffic_data=traffic_data,
+        notes="Pengujian aplikasi VC Ratio pada server Dishub"
+    )
+
+    print()
+    print("=" * 60)
+    print("HASIL BENCHMARK")
+    print("=" * 60)
+    print(f"Model          : {os.path.basename(str(MODEL_PATH))}")
+    print(f"Video          : {os.path.basename(str(VIDEO_PATH))}")
+    print(f"Device         : {selected_device}")
+    print(f"Status         : {benchmark_status}")
+    print(f"Frame diproses : {frame_ke}")
+    print(
+        f"Waktu proses   : "
+        f"{benchmark_processing_seconds:.2f} detik"
+    )
+    print(f"FPS rata-rata  : {benchmark_average_fps:.2f}")
+    print(f"Motor          : {vehicle_data['motor']}")
+    print(f"Mobil          : {vehicle_data['mobil']}")
+    print(f"Bus            : {vehicle_data['bus']}")
+    print(f"Truk           : {vehicle_data['truk']}")
+    print(f"Ambulans       : {vehicle_data['ambulans']}")
+    print(f"Total          : {vehicle_data['total']}")
+    print(f"VC Ratio       : {traffic_data['vc_ratio']:.4f}")
+    print(f"Status Jalan   : {traffic_data['status']}")
+    print("=" * 60)
+
+else:
+
+    print(
+        "BENCHMARK TIDAK DISIMPAN: "
+        "tidak ada frame yang berhasil diproses."
+    )
+
+
+video.release()
+cv2.destroyAllWindows()
 
 video.release()
 cv2.destroyAllWindows()

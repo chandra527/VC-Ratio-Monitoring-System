@@ -96,10 +96,37 @@ class DatabaseLogger:
                 """
             )
 
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS benchmark_results (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    tested_at DATETIME NOT NULL,
+                    model_name VARCHAR(100) NOT NULL,
+                    video_name VARCHAR(255) NOT NULL,
+                    device VARCHAR(50) NOT NULL,
+                    run_status VARCHAR(30) NOT NULL,
+                    processed_frames INT NOT NULL,
+                    source_fps DECIMAL(10, 2) NOT NULL,
+                    processing_seconds DECIMAL(12, 2) NOT NULL,
+                    average_fps DECIMAL(10, 2) NOT NULL,
+                    motor INT NOT NULL,
+                    mobil INT NOT NULL,
+                    bus INT NOT NULL,
+                    truk INT NOT NULL,
+                    ambulans INT NOT NULL,
+                    total INT NOT NULL,
+                    vc_ratio DECIMAL(10, 4) NOT NULL,
+                    traffic_status VARCHAR(50) NOT NULL,
+                    notes VARCHAR(500)
+                )
+                """
+            )
+
             connection.commit()
 
             print(
-                "MYSQL: tabel traffic_logs siap."
+                "MYSQL: tabel traffic_logs dan "
+                "benchmark_results siap."
             )
 
         except Error as error:
@@ -192,6 +219,106 @@ class DatabaseLogger:
                 f"{error}"
             )
 
+
+    def save_benchmark(
+        self,
+        model_name,
+        video_name,
+        device,
+        run_status,
+        processed_frames,
+        source_fps,
+        processing_seconds,
+        average_fps,
+        vehicle_data,
+        traffic_data,
+        notes=None
+    ):
+
+        tested_at = datetime.now()
+
+        connection = None
+        cursor = None
+
+        try:
+
+            connection = self._connect()
+            cursor = connection.cursor()
+
+            cursor.execute(
+                """
+                INSERT INTO benchmark_results (
+                    tested_at,
+                    model_name,
+                    video_name,
+                    device,
+                    run_status,
+                    processed_frames,
+                    source_fps,
+                    processing_seconds,
+                    average_fps,
+                    motor,
+                    mobil,
+                    bus,
+                    truk,
+                    ambulans,
+                    total,
+                    vc_ratio,
+                    traffic_status,
+                    notes
+                )
+                VALUES (
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s
+                )
+                """,
+                (
+                    tested_at,
+                    str(model_name),
+                    str(video_name),
+                    str(device),
+                    str(run_status),
+                    int(processed_frames),
+                    float(source_fps),
+                    float(processing_seconds),
+                    float(average_fps),
+                    int(vehicle_data["motor"]),
+                    int(vehicle_data["mobil"]),
+                    int(vehicle_data["bus"]),
+                    int(vehicle_data["truk"]),
+                    int(vehicle_data["ambulans"]),
+                    int(vehicle_data["total"]),
+                    float(traffic_data["vc_ratio"]),
+                    str(traffic_data["status"]),
+                    notes
+                )
+            )
+
+            connection.commit()
+
+            print(
+                "MYSQL BENCHMARK TERSIMPAN: "
+                f"{model_name} | "
+                f"{average_fps:.2f} FPS"
+            )
+
+        except Error as error:
+
+            if (
+                connection is not None
+                and connection.is_connected()
+            ):
+                connection.rollback()
+
+            print(
+                "MYSQL: gagal menyimpan benchmark: "
+                f"{error}"
+            )
+
+
         finally:
 
             if cursor is not None:
@@ -201,4 +328,5 @@ class DatabaseLogger:
                 connection is not None
                 and connection.is_connected()
             ):
+
                 connection.close()
