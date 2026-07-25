@@ -1,116 +1,140 @@
 # 🚦 VC Ratio Monitoring System
 
-Realtime Traffic Monitoring System menggunakan **YOLOv8**, **OpenCV**, dan **Python** untuk mendeteksi kendaraan, menghitung volume lalu lintas, VC Ratio, serta mengestimasi kecepatan kendaraan dari rekaman CCTV.
+![Banner](docs/images/banner.png)
+
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![YOLO](https://img.shields.io/badge/YOLO-Ultralytics-green)
+![OpenCV](https://img.shields.io/badge/OpenCV-Computer%20Vision-red)
+![CUDA](https://img.shields.io/badge/CUDA-Enabled-success)
+![MySQL](https://img.shields.io/badge/Database-MySQL-orange)
+![Status](https://img.shields.io/badge/Status-Active-success)
+
+
+# 🖼 Dashboard Preview
+
+![Dashboard](docs/images/dashboard.png)
+
+Computer Vision based Traffic Monitoring System for vehicle detection, tracking, traffic analysis, and VC Ratio calculation using **YOLO**, **OpenCV**, and **Python**.
+
+This project is being developed as a prototype for traffic monitoring and analysis, with future deployment planned for the Transportation Department (Dinas Perhubungan).
 
 ---
 
-# 📖 About Project
+# 📌 Project Overview
 
-Project ini dikembangkan sebagai media pembelajaran Computer Vision sekaligus prototype sistem monitoring lalu lintas yang dipersiapkan menuju implementasi pada lingkungan Dishub.
+The system processes recorded CCTV video to automatically:
 
-Project dibangun secara modular sehingga setiap fitur dapat dikembangkan tanpa mengganggu modul lainnya.
+- Detect vehicles
+- Track vehicle movement
+- Count traffic volume
+- Calculate VC Ratio
+- Estimate vehicle speed
+- Analyze traffic conditions
+- Store analysis results into MySQL database
 
----
-
-# 🎯 Tujuan Project
-
-- Deteksi kendaraan secara realtime
-- Multi Object Tracking menggunakan ByteTrack
-- Vehicle Counting berdasarkan Tracking ID
-- Menghitung Volume Kendaraan
-- Menghitung VC Ratio
-- Estimasi Kecepatan Kendaraan
-- Menampilkan Dashboard Monitoring
-- Menyimpan data ke CSV
-- Menyimpan data ke SQLite Database
+The application is designed using a modular architecture to simplify maintenance and future development.
 
 ---
 
-# 📸 Dashboard
+# ✨ Current Features
 
-> *(Screenshot dashboard akan ditambahkan setelah tampilan final selesai.)*
+## 🚗 Computer Vision
 
----
-
-# ✨ Features
-
-## Computer Vision
-
-- ✅ OpenCV Video Streaming
-- ✅ YOLOv8 Vehicle Detection
-- ✅ Bounding Box
-- ✅ Vehicle Label
+- ✅ YOLO Vehicle Detection
 - ✅ ByteTrack Multi Object Tracking
+- ✅ Vehicle Classification
+- ✅ Bounding Box Visualization
+- ✅ Tracking ID Management
 
 ---
 
-## Traffic Analysis
+## 📊 Traffic Analysis
 
 - ✅ Vehicle Counting
-- ✅ Vehicle Classification Voting
-- ✅ Traffic Volume
-- ✅ Capacity
-- ✅ VC Ratio
-- ✅ Traffic Status
-- ✅ Speed Estimation
+- ✅ Traffic Volume Calculation
+- ✅ Road Capacity
+- ✅ VC Ratio Calculation
+- ✅ Traffic Status Classification
+- ✅ Vehicle Speed Estimation
 
 ---
 
-## Data Logging
+## 💾 Data Logging
 
-- ✅ CSV Logger
-- ✅ SQLite Database Logger
+- ✅ CSV Export
+- ✅ MySQL Database Logger
+- ✅ Benchmark Result Logging
 
 ---
 
-## Dashboard
+## ⚡ Performance
 
-- ✅ Professional Dashboard
-- ✅ Camera View
-- ✅ Vehicle Count Panel
-- ✅ Traffic Analysis Panel
+- ✅ CUDA GPU Acceleration
+- ✅ Multi Model Benchmark
+- ✅ YOLOv8s Benchmark
+- ✅ YOLOv8m Benchmark
+- ✅ YOLO11 Benchmark
+
+---
+
+## 🖥 Dashboard
+
+- ✅ Professional Dashboard Layout
+- ✅ Camera Display
+- ✅ Traffic Statistics
+- ✅ Vehicle Information
 - ✅ System Information
 
 ---
 
-## Software Engineering
+# 🏗 System Architecture
 
-- ✅ Modular Architecture
-- ✅ Refactoring
-- ✅ Git Version Control
-- ✅ GitHub Repository
-- ✅ Project Documentation
+![Architecture](docs/images/architecture.png)
+
+The system follows a modular processing pipeline consisting of:
+
+1. Video Recording Input
+2. YOLO Vehicle Detection
+3. ByteTrack Object Tracking
+4. Vehicle Classification
+5. Vehicle Counting
+6. Traffic Volume Analysis
+7. Speed Estimation
+8. VC Ratio Calculation
+9. Traffic Status Analysis
+10. CSV & MySQL Logging
+11. Dashboard Visualization
 
 ---
 
 # 📂 Project Structure
 
 ```text
-VC_RATIO_PROJECT_NEW
+VC-Ratio-Monitoring-System
 │
+├── benchmark/
 ├── data/
-│
 ├── docs/
-│   ├── Progress_Report.md
-│   └── Architecture.md
-│
 ├── models/
-│
 ├── output/
+├── tools/
 │
 ├── src/
 │   ├── main.py
-│   ├── layout.py
-│   ├── draw.py
+│   ├── config.py
+│   ├── hardware.py
 │   ├── processing.py
-│   ├── utils.py
+│   ├── draw.py
+│   ├── layout.py
 │   ├── yolo_detector.py
 │   ├── tracker.py
 │   ├── vehicle_tracker.py
 │   ├── line_counter.py
 │   ├── speed_estimator.py
 │   ├── csv_logger.py
-│   └── database_logger.py
+│   ├── database_logger.py
+│   ├── database_logger_sqlite.py
+│   └── utils.py
 │
 ├── requirements.txt
 └── README.md
@@ -120,12 +144,13 @@ VC_RATIO_PROJECT_NEW
 
 # 🛠 Technologies
 
-- Python
+- Python 3.12
 - OpenCV
-- YOLOv8 (Ultralytics)
+- Ultralytics YOLO
 - ByteTrack
-- SQLite
-- CSV
+- PyTorch
+- CUDA
+- MySQL
 - NumPy
 - Git
 - GitHub
@@ -140,19 +165,19 @@ Clone repository
 git clone https://github.com/chandra527/VC-Ratio-Monitoring-System.git
 ```
 
-Masuk ke folder project
+Enter project directory
 
 ```bash
 cd VC-Ratio-Monitoring-System
 ```
 
-Install dependency
+Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Jalankan aplikasi
+Run the application
 
 ```bash
 python src/main.py
@@ -160,45 +185,117 @@ python src/main.py
 
 ---
 
-# 📈 Development Roadmap
+# 📈 Benchmark
 
-## ✅ Completed
+The benchmark module automatically records:
 
-- OpenCV Streaming
-- Dashboard
-- YOLOv8 Detection
+- Model Name
+- Device (CPU / CUDA)
+- Processing Time
+- Average FPS
+- Vehicle Count
+- VC Ratio
+- Traffic Status
+
+Current benchmark models:
+
+| Model | Device | Status |
+|--------|--------|--------|
+| YOLOv8s | CUDA | ✅ |
+| YOLOv8m | CUDA | ✅ |
+| YOLO11s | CUDA | ✅ |
+
+Benchmark results are stored automatically into the MySQL database for future comparison and performance analysis.
+---
+
+# 🗺 Development Roadmap
+
+## ✅ Version 1.0 — Video Recording
+
+- YOLO Vehicle Detection
 - ByteTrack Tracking
 - Vehicle Counting
-- Traffic Volume
-- VC Ratio
-- CSV Logger
-- SQLite Database
 - Speed Estimation
+- VC Ratio
+- Dashboard
+- CSV Logger
+- MySQL Logger
+- CUDA Acceleration
+- Benchmark Logging
 
 ---
 
-## 🚧 Next Development
+## 🚧 Version 1.1 — Live RTSP
 
-- Speed Overlay
-- Average Speed Dashboard
-- Vehicle Log
-- Live CCTV (RTSP)
-- Server Deployment
-- Database Online
+- RTSP Camera Streaming
+- Live Traffic Processing
+- Live Database
+
+---
+
+## 🚧 Version 1.2 — Web Dashboard
+
 - Web Dashboard
+- Realtime Monitoring
+- Historical Report
+
+---
+
+## 🚧 Version 2.0 — Production Deployment
+
+- Multi Camera
+- Central Server
+- Traffic Analytics
+- Smart Traffic Monitoring
+
+---
+
+## 🚧 Version 1.1 — RTSP Streaming
+
+Planned features:
+
+- RTSP Camera
+- Live Video Processing
+- Streaming Stability
+- Live Database
+
+---
+
+## 🚧 Version 1.2 — Web Dashboard
+
+Planned features:
+
+- Web Dashboard
+- Realtime Monitoring
+- Traffic Analytics
+- Historical Reports
+
+---
+
+## 🚧 Version 2.0 — Production Deployment
+
+Target deployment:
+
+- Transportation Department Server
+- Live CCTV Monitoring
+- Centralized Database
+- Multi Camera Support
 
 ---
 
 # 📚 Documentation
 
-Project documentation tersedia pada folder:
+Project documentation is available in:
 
 ```text
 docs/
 ```
 
-- Progress_Report.md
-- Architecture.md
+Including:
+
+- Project Architecture
+- Development Notes
+- Benchmark Documentation
 
 ---
 
@@ -212,29 +309,6 @@ Indonesia
 
 ---
 
-# ⭐ Current Version
+# 📄 License
 
-**Version 0.8**
-
-Milestone:
-
-- Vehicle Detection
-- Tracking
-- Vehicle Counting
-- VC Ratio
-- CSV Logger
-- SQLite Database
-- Speed Estimation
-
-
-## Features
-
-- Vehicle Detection (YOLOv8)
-- Multi Object Tracking (ByteTrack)
-- Vehicle Counting
-- Speed Estimation
-- VC Ratio Calculation
-- Traffic Status Classification
-- CSV Logging
-- MySQL Database Logging
-
+This project is currently developed for learning, research, and prototype implementation.
