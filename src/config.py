@@ -15,7 +15,9 @@ CONFIDENCE = 0.15
 # VIDEO
 # ==========================================
 
-VIDEO_PATH = "data/pak_kasih.dav"
+
+VIDEO_PATH = "data/benchmark_10menit_25_35.mp4"
+
 
 
 # ==========================================
