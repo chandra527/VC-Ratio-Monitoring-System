@@ -544,7 +544,7 @@ def draw_footer(dashboard):
     )
 
     #tulisan_footer
-    text = "Powered by OpenCV + YOLOv8 | Eggi Chandra"
+    text = "Traffic Monitoring & VC Ratio System | Development Version"
 
     text_size, baseline = cv2.getTextSize(
         text,
