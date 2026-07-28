@@ -22,19 +22,73 @@ from line_counter import (
 from csv_logger import CSVLogger
 from database_logger import DatabaseLogger
 from speed_estimator import SpeedEstimator
-from config import VIDEO_PATH, MODEL_PATH
-
-
-selected_device = get_selected_device()
-show_banner(selected_device)
-
-video = cv2.VideoCapture(
-    VIDEO_PATH
+from config import (
+    VIDEO_PATH,
+    MODEL_PATH,
+    ACTIVE_CAMERA,
+    ACTIVE_CAMERA_NAME,
 )
 
 
+selected_device = get_selected_device()
+benchmark_device = (
+    "CUDA"
+    if selected_device != "cpu"
+    else "CPU"
+)
+show_banner(selected_device)
+
+#video = cv2.VideoCapture(VIDEO_PATH)
+source = str(VIDEO_PATH)
+
+is_rtsp = source.lower().startswith(
+    ("rtsp://", "rtsps://")
+)
+
+print(f"Kamera aktif : {ACTIVE_CAMERA_NAME}")
+
+if is_rtsp:
+    print("Sumber video : RTSP Camera")
+
+    video = cv2.VideoCapture(
+        source,
+        cv2.CAP_FFMPEG
+    )
+
+    video.set(
+        cv2.CAP_PROP_BUFFERSIZE,
+        1
+    )
+
+else:
+    print(f"Sumber video : {source}")
+
+    video = cv2.VideoCapture(source)
+
+if not video.isOpened():
+    raise RuntimeError(
+        f"Gagal membuka sumber video "
+        f"untuk {ACTIVE_CAMERA_NAME}."
+    )
+
 frame_ke = 0
-fps = video.get(cv2.CAP_PROP_FPS)
+#fps = video.get(cv2.CAP_PROP_FPS)
+fps = video.get(
+    cv2.CAP_PROP_FPS
+)
+
+if fps is None or fps <= 0 or fps > 120:
+    fps = 25.0
+
+    print(
+        "FPS sumber tidak valid. "
+        "Menggunakan fallback 25 FPS."
+    )
+
+else:
+    print(
+        f"Source FPS   : {fps:.2f}"
+    )
 
 #panel_Vehicle_Count
 vehicle_data = create_vehicle_data()
@@ -73,15 +127,48 @@ benchmark_start_time = time.perf_counter()
 
 benchmark_completed = False
 
+
+consecutive_read_failures = 0
+MAX_READ_FAILURES = 30
+
 #################
 
 while True:
 
+    #ret, frame = video.read()
+
+    #if not ret:
+    #    benchmark_completed = True
+     #   break
+
     ret, frame = video.read()
 
-    if not ret:
-        benchmark_completed = True
-        break
+    if not ret or frame is None:
+
+        consecutive_read_failures += 1
+
+        print(
+            "Gagal membaca frame "
+            f"({consecutive_read_failures}/"
+            f"{MAX_READ_FAILURES})"
+        )
+
+        if not is_rtsp:
+            benchmark_completed = True
+            break
+
+        if consecutive_read_failures >= MAX_READ_FAILURES:
+            print(
+                "Koneksi RTSP terputus "
+                "terlalu lama."
+            )
+            break
+
+        time.sleep(0.2)
+        continue
+
+    consecutive_read_failures = 0
+
 
     frame_ke += 1
 
@@ -104,8 +191,6 @@ while True:
         distance_meters=10
         )
 
-
-
     result = track(frame)
 
     # VehicleTracker melakukan voting lebih dahulu
@@ -118,9 +203,8 @@ while True:
     tracker
     )
 
+
     vehicle_data = tracker.get_vehicle_data()
-
-
 
     vehicle_data, traffic_data = update_traffic_data(
         vehicle_data,
@@ -223,7 +307,7 @@ while True:
     cv2.imshow(WINDOW_NAME, dashboard)
 
     # Keluar jika tombol q ditekan
-    if cv2.waitKey(25) & 0xFF == ord("q"):
+    if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
 benchmark_processing_seconds = (
@@ -263,8 +347,14 @@ if frame_ke > 0:
 
     database_logger.save_benchmark(
         model_name=os.path.basename(str(MODEL_PATH)),
-        video_name=os.path.basename(str(VIDEO_PATH)),
-        device=str(selected_device),
+        #video_name=os.path.basename(str(VIDEO_PATH)),
+        video_name=(
+            ACTIVE_CAMERA_NAME
+            if is_rtsp
+            else os.path.basename(str(VIDEO_PATH))
+        ),
+        #device=str(selected_device),
+        device=benchmark_device,
         run_status=benchmark_status,
         processed_frames=frame_ke,
         source_fps=fps,
@@ -280,8 +370,16 @@ if frame_ke > 0:
     print("HASIL BENCHMARK")
     print("=" * 60)
     print(f"Model          : {os.path.basename(str(MODEL_PATH))}")
-    print(f"Video          : {os.path.basename(str(VIDEO_PATH))}")
-    print(f"Device         : {selected_device}")
+    #print(f"Video          : {os.path.basename(str(VIDEO_PATH))}")
+    source_name = (
+    ACTIVE_CAMERA_NAME
+    if is_rtsp
+    else os.path.basename(
+        str(VIDEO_PATH)
+    )
+    )
+    print(f"Sumber         : {source_name}")
+    print(f"Device         : {benchmark_device}")
     print(f"Status         : {benchmark_status}")
     print(f"Frame diproses : {frame_ke}")
     print(
@@ -306,9 +404,6 @@ else:
         "tidak ada frame yang berhasil diproses."
     )
 
-
-video.release()
-cv2.destroyAllWindows()
 
 video.release()
 cv2.destroyAllWindows()

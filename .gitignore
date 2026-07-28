@@ -1,28 +1,61 @@
+# ==========================
 # Python
+# ==========================
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+.pytest_cache/
 
+# ==========================
+# Virtual Environment
+# ==========================
+.venv/
+venv/
+
+# ==========================
+# Environment
+# ==========================
+.env
+
+# ==========================
 # VS Code
+# ==========================
 .vscode/
 
-# Model AI
+# ==========================
+# AI Model
+# ==========================
 models/*.pt
 
+# ==========================
 # Dataset
-data/*.dav
+# ==========================
 data/*.mp4
 data/*.avi
+data/*.dav
 
-# Temporarygit push -u origin main
+# ==========================
+# Output
+# ==========================
+output/
+benchmark/raw/
+
+# ==========================
+# Log
+# ==========================
 *.log
+
+# ==========================
+# Operating System
+# ==========================
+Thumbs.db
+.DS_Store
 
 # Runtime output
 output/*.csv
 output/*.db
 
-#DB
-.env
-
 # Benchmark Output
 benchmark/raw/*.json
 benchmark/raw/*.csv
+

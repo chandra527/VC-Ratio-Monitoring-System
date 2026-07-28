@@ -1,27 +1,116 @@
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+# ==========================================
+# PROJECT PATH
+# ==========================================
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
+
+
 # ==========================================
 # YOLO CONFIGURATION
 # ==========================================
 
-MODEL_PATH = "models/yolov8s.pt"
+model_value = os.getenv(
+    "MODEL_PATH",
+    "models/yolo11s.pt"
+)
 
-DEVICE = "auto"
+model_candidate = Path(model_value)
 
-IMAGE_SIZE = 960
+MODEL_PATH = str(
+    model_candidate
+    if model_candidate.is_absolute()
+    else BASE_DIR / model_candidate
+)
 
-CONFIDENCE = 0.15
+DEVICE = os.getenv(
+    "DEVICE",
+    "auto"
+)
+
+IMAGE_SIZE = int(
+    os.getenv(
+        "IMAGE_SIZE",
+        "960"
+    )
+)
+
+CONFIDENCE = float(
+    os.getenv(
+        "CONFIDENCE",
+        "0.15"
+    )
+)
 
 
 # ==========================================
-# VIDEO
+# VIDEO SOURCE
 # ==========================================
 
+VIDEO_SOURCE_TYPE = os.getenv(
+    "VIDEO_SOURCE_TYPE",
+    "file"
+).lower()
 
-VIDEO_PATH = "data/benchmark_10menit_25_35.mp4"
+ACTIVE_CAMERA = os.getenv(
+    "ACTIVE_CAMERA",
+    "1"
+)
 
+RTSP_CAMERAS = {
+    "1": os.getenv("RTSP_CAMERA_1"),
+    "2": os.getenv("RTSP_CAMERA_2"),
+}
 
+if VIDEO_SOURCE_TYPE == "rtsp":
+
+    VIDEO_PATH = RTSP_CAMERAS.get(
+        ACTIVE_CAMERA
+    )
+
+    if not VIDEO_PATH:
+        raise ValueError(
+            f"RTSP untuk kamera {ACTIVE_CAMERA} "
+            "belum dikonfigurasi di file .env."
+        )
+
+else:
+
+    video_value = os.getenv(
+        "VIDEO_SOURCE",
+        "data/benchmark_10menit_25_35.mp4"
+    )
+
+    video_candidate = Path(video_value)
+
+    VIDEO_PATH = str(
+        video_candidate
+        if video_candidate.is_absolute()
+        else BASE_DIR / video_candidate
+    )
 
 # ==========================================
 # DISPLAY
 # ==========================================
 
-WINDOW_NAME = "VC Ratio Monitoring"
+WINDOW_NAME = os.getenv(
+    "WINDOW_NAME",
+    "VC Ratio Monitoring"
+)
+
+CAMERA_NAMES = {
+    "1": "Kamera Komyos sudarso tengah",
+    "2": "Kamera Komyos ujung",
+}
+
+ACTIVE_CAMERA_NAME = CAMERA_NAMES.get(
+    ACTIVE_CAMERA,
+    f"Kamera {ACTIVE_CAMERA}"
+)
