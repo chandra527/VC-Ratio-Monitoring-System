@@ -2,7 +2,7 @@ from config import CONFIDENCE, IMAGE_SIZE
 from yolo_detector import model
 
 
-VEHICLE_CLASSES = [2, 3, 5, 7]
+YOLO_VEHICLE_CLASS_IDS = [2, 3, 5, 7]
 
 
 def track(frame):
@@ -23,7 +23,7 @@ def track(frame):
         verbose=False,
         imgsz=IMAGE_SIZE,
         conf=CONFIDENCE,
-        classes=VEHICLE_CLASSES,
+        classes=YOLO_VEHICLE_CLASS_IDS,
     )
 
     return results[0]
