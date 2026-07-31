@@ -31,6 +31,17 @@ from config import (
 
 
 selected_device = get_selected_device()
+
+def open_video_source(source, is_rtsp):
+    """
+    Membuka file video atau stream RTSP.
+    """
+    video = open_video_source(
+    source,
+    is_rtsp
+    )
+    
+
 benchmark_device = (
     "CUDA"
     if selected_device != "cpu"
@@ -129,17 +140,11 @@ benchmark_completed = False
 
 
 consecutive_read_failures = 0
-MAX_READ_FAILURES = 30
-
+MAX_READ_FAILURES = 5
+reconnect_count = 0
 #################
 
 while True:
-
-    #ret, frame = video.read()
-
-    #if not ret:
-    #    benchmark_completed = True
-     #   break
 
     ret, frame = video.read()
 
@@ -158,15 +163,48 @@ while True:
             break
 
         if consecutive_read_failures >= MAX_READ_FAILURES:
-            print(
-                "Koneksi RTSP terputus "
-                "terlalu lama."
-            )
-            break
 
+            print()
+            print("=" * 60)
+            print("RTSP TERPUTUS")
+            print("Mencoba reconnect...")
+            print("=" * 60)
+
+            video.release()
+
+            time.sleep(3)
+
+            video = open_video_source(
+                source,
+                is_rtsp
+            )
+
+            if video.isOpened():
+                reconnect_count += 1
+
+                print(
+                    f"Reconnect berhasil."
+                    f"Total reconnect: {reconnect_count}"
+                )
+
+                consecutive_read_failures = 0
+
+                continue
+
+            print(
+                "Reconnect gagal."
+            )
+
+            consecutive_read_failures = 0
+
+            time.sleep(5)
+            continue
+
+        # Gangguan singkat, belum perlu reconnect
         time.sleep(0.2)
         continue
 
+    # Frame berhasil dibaca
     consecutive_read_failures = 0
 
 
@@ -362,7 +400,10 @@ if frame_ke > 0:
         average_fps=benchmark_average_fps,
         vehicle_data=vehicle_data,
         traffic_data=traffic_data,
-        notes="Pengujian aplikasi VC Ratio pada server Dishub"
+        notes=(
+            "Pengujian aplikasi VC Ratio pada server Dishub. "
+            f"Total RTSP reconnect: {reconnect_count}"
+        )
     )
 
     print()
@@ -387,6 +428,7 @@ if frame_ke > 0:
         f"{benchmark_processing_seconds:.2f} detik"
     )
     print(f"FPS rata-rata  : {benchmark_average_fps:.2f}")
+    print(f"RTSP Reconnect : {reconnect_count}")
     print(f"Motor          : {vehicle_data['motor']}")
     print(f"Mobil          : {vehicle_data['mobil']}")
     print(f"Bus            : {vehicle_data['bus']}")
