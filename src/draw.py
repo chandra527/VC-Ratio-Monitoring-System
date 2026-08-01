@@ -823,3 +823,94 @@ def draw_virtual_gate(
     )
 
     return frame
+
+def draw_virtual_gate_summary(
+    frame,
+    virtual_gate_count,
+):
+    """
+    Menampilkan ringkasan observer Virtual Gate.
+
+    Panel ini hanya sebagai pembanding.
+    Belum mengganti counter utama.
+    """
+
+    a_to_b = virtual_gate_count.get(
+        "A_TO_B",
+        0,
+    )
+
+    b_to_a = virtual_gate_count.get(
+        "B_TO_A",
+        0,
+    )
+
+    total = a_to_b + b_to_a
+
+    x = 15
+    y = frame.shape[0] - 95
+
+    overlay = frame.copy()
+
+    cv2.rectangle(
+        overlay,
+        (x - 5, y - 25),
+        (x + 170, y + 65),
+        (0, 0, 0),
+        -1,
+    )
+
+    cv2.addWeighted(
+        overlay,
+        0.45,
+        frame,
+        0.55,
+        0,
+        frame,
+    )
+
+    cv2.putText(
+        frame,
+        "VIRTUAL GATE",
+        (x, y),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.52,
+        (0, 255, 255),
+        2,
+        cv2.LINE_AA,
+    )
+
+    cv2.putText(
+        frame,
+        f"A -> B : {a_to_b}",
+        (x, y + 20),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.45,
+        (255,255,255),
+        1,
+        cv2.LINE_AA,
+    )
+
+    cv2.putText(
+        frame,
+        f"B -> A : {b_to_a}",
+        (x, y + 40),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.45,
+        (255,255,255),
+        1,
+        cv2.LINE_AA,
+    )
+
+    cv2.putText(
+        frame,
+        f"TOTAL : {total}",
+        (x, y + 60),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.45,
+        (0,255,0),
+        2,
+        cv2.LINE_AA,
+    )
+
+    return frame

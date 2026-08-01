@@ -45,7 +45,7 @@ class VehicleTracker:
 
 
     def update(self, result):
-
+        crossing_events = []
         zone_top = self.line_y - self.line_tolerance
 
         for box in result.boxes:
@@ -111,12 +111,25 @@ class VehicleTracker:
                 self.vehicle_count[key] += 1
                 self.crossed_ids.add(track_id)
 
+                event = {
+                    "track_id": track_id,
+                    "vehicle_type": key,
+                    "direction": "B_TO_A",
+                    "point": (
+                        (x1 + x2) // 2,
+                        y2,
+                    ),
+                }
+
+                crossing_events.append(event)
+
                 print(
                     f"TERHITUNG: {key} "
                     f"ID #{track_id} "
                     f"Total = {self.vehicle_count[key]}"
                 )
 
+        return crossing_events
 
     def get_vehicle_data(self):
 

@@ -31,6 +31,7 @@ from config import (
 from trajectory_engine import TrajectoryEngine
 from yolo_detector import CLASS_NAMES, VEHICLE_CLASSES
 from virtual_gate import VirtualGate
+from audit_engine import AuditEngine
 
 selected_device = get_selected_device()
 
@@ -117,6 +118,8 @@ speed_estimator = None
 trajectory_engine = TrajectoryEngine(
     max_history=30
 )
+
+audit_engine = AuditEngine()
 
 virtual_gate = VirtualGate(
     start_point=(100, 320),
@@ -422,6 +425,20 @@ while True:
 
     for event in gate_events:
 
+        track_id = event["track_id"]
+
+        audit_engine.record_virtual_gate(
+            track_id=track_id,
+            vehicle_type=tracker.get_vehicle_label(
+                track_id
+            ),
+            direction=event["direction"],
+            frame_number=frame_ke,
+            point=event["point"],
+        )
+
+    for event in gate_events:
+
         direction = event["direction"]
 
         virtual_gate_count[
@@ -450,7 +467,18 @@ while True:
 
 
     # VehicleTracker melakukan voting lebih dahulu
-    tracker.update(result)
+    #tracker.update(result)
+
+    legacy_events = tracker.update(result)
+    
+    for event in legacy_events:
+        audit_engine.record_legacy(
+            track_id=event["track_id"],
+            vehicle_type=event["vehicle_type"],
+            direction=event["direction"],
+            frame_number=frame_ke,
+            point=event["point"],
+        )
 
     # SpeedEstimator mengambil hasil voting tersebut
     speed_estimator.update(
@@ -504,6 +532,13 @@ while True:
     frame,
     virtual_gate,
     )
+
+    frame = draw_virtual_gate_summary(
+    frame,
+    virtual_gate_count,
+    )
+
+    frame_kecil = resize_frame(frame)
 
     frame = draw_speed_line_a(
         frame,
@@ -565,7 +600,7 @@ while True:
     vehicle_data,
     traffic_data
     )
-    
+     
     #footer
     dashboard = draw_footer(dashboard)
 
@@ -675,6 +710,11 @@ else:
         "tidak ada frame yang berhasil diproses."
     )
 
+# ==========================================
+# AUDIT REPORT
+# ==========================================
+
+audit_engine.print_report()
 
 video.release()
 cv2.destroyAllWindows()
