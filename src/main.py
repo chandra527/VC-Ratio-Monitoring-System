@@ -28,6 +28,8 @@ from config import (
     ACTIVE_CAMERA,
     ACTIVE_CAMERA_NAME,
 )
+from trajectory_engine import TrajectoryEngine
+from yolo_detector import CLASS_NAMES, VEHICLE_CLASSES
 
 
 selected_device = get_selected_device()
@@ -112,6 +114,10 @@ traffic_data = create_traffic_data()
 tracker = None
 speed_estimator = None
 
+trajectory_engine = TrajectoryEngine(
+    max_history=30
+)
+
 WINDOW_NAME = "VC Ratio Monitoring"
 
 cv2.namedWindow(
@@ -142,6 +148,50 @@ benchmark_completed = False
 consecutive_read_failures = 0
 MAX_READ_FAILURES = 5
 reconnect_count = 0
+
+def update_trajectories(
+    result,
+    trajectory_engine,
+):
+    """
+    Merekam bottom-center setiap kendaraan
+    berdasarkan tracking ID ByteTrack.
+    """
+
+    if result.boxes is None:
+        return
+
+    for box in result.boxes:
+
+        if box.id is None:
+            continue
+
+        track_id = int(box.id[0])
+        class_id = int(box.cls[0])
+
+        class_name = CLASS_NAMES[class_id]
+
+        if class_name not in VEHICLE_CLASSES:
+            continue
+
+        x1, y1, x2, y2 = map(
+            int,
+            box.xyxy[0],
+        )
+
+        bottom_center = (
+            (x1 + x2) // 2,
+            y2,
+        )
+
+        trajectory_engine.update(
+            track_id,
+            bottom_center,
+        )
+
+
+
+
 #################
 
 while True:
@@ -231,6 +281,24 @@ while True:
 
     result = track(frame)
 
+    update_trajectories(
+    result,
+    trajectory_engine,
+    )
+
+    if frame_ke % 30 == 0:
+        trajectories = (
+            trajectory_engine
+            .get_all_trajectories()
+        )
+
+        print(
+            f"TRAJECTORY DEBUG | "
+            f"Active tracks: "
+            f"{len(trajectories)}"
+        )
+
+
     # VehicleTracker melakukan voting lebih dahulu
     tracker.update(result)
 
@@ -274,6 +342,11 @@ while True:
         result,
         speed_estimator,
         tracker
+    )
+
+    frame = draw_trajectories(
+    frame,
+    trajectory_engine,
     )
 
     frame = draw_speed_line_a(

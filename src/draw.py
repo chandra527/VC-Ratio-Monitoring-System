@@ -738,3 +738,55 @@ def draw_compact_summary(
         )
 
     return dashboard
+
+def draw_trajectories(
+    frame,
+    trajectory_engine,
+):
+    """
+    Menggambar lintasan bottom-center setiap tracking ID.
+
+    Fungsi ini hanya untuk visualisasi.
+    Tidak memengaruhi counting, speed, atau database.
+    """
+
+    trajectories = (
+        trajectory_engine
+        .get_all_trajectories()
+    )
+
+    for track_id, points in trajectories.items():
+
+        if len(points) < 2:
+            continue
+
+        # Hubungkan setiap titik trajectory
+        for index in range(
+            1,
+            len(points),
+        ):
+            previous_point = points[index - 1]
+            current_point = points[index]
+
+            cv2.line(
+                frame,
+                previous_point,
+                current_point,
+                (0, 255, 255),
+                2,
+                cv2.LINE_AA,
+            )
+
+        # Tandai posisi terakhir
+        current_point = points[-1]
+
+        cv2.circle(
+            frame,
+            current_point,
+            4,
+            (0, 255, 255),
+            -1,
+            cv2.LINE_AA,
+        )
+
+    return frame
