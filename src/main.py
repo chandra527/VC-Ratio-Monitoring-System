@@ -30,7 +30,7 @@ from config import (
 )
 from trajectory_engine import TrajectoryEngine
 from yolo_detector import CLASS_NAMES, VEHICLE_CLASSES
-
+from virtual_gate import VirtualGate
 
 selected_device = get_selected_device()
 
@@ -118,6 +118,21 @@ trajectory_engine = TrajectoryEngine(
     max_history=30
 )
 
+virtual_gate = VirtualGate(
+    start_point=(100, 320),
+    end_point=(850, 320),
+    tolerance=5,
+)
+
+#inisialisasi
+observed_gate_sides = {}
+observed_crossed_ids = set()
+
+virtual_gate_count = {
+    VirtualGate.A_TO_B: 0,
+    VirtualGate.B_TO_A: 0,
+}
+
 WINDOW_NAME = "VC Ratio Monitoring"
 
 cv2.namedWindow(
@@ -190,7 +205,115 @@ def update_trajectories(
         )
 
 
+def observe_virtual_gate(
+    trajectory_engine,
+    virtual_gate,
+    observed_gate_sides,
+    observed_crossed_ids,
+):
+    """
+    Mendeteksi crossing Virtual Gate.
 
+    Satu tracking ID hanya menghasilkan
+    satu event crossing.
+    """
+
+    events = []
+
+    trajectories = (
+        trajectory_engine
+        .get_all_trajectories()
+    )
+
+    for track_id, points in trajectories.items():
+
+        if track_id in observed_crossed_ids:
+            continue
+
+        if len(points) < 2:
+            continue
+
+        current_point = points[-1]
+
+        current_side = virtual_gate.get_side(
+            current_point
+        )
+
+        previous_side = (
+            observed_gate_sides.get(
+                track_id
+            )
+        )
+
+        direction = None
+
+        if (
+            previous_side
+            == VirtualGate.SIDE_A
+            and current_side
+            == VirtualGate.SIDE_B
+        ):
+            direction = VirtualGate.A_TO_B
+
+        elif (
+            previous_side
+            == VirtualGate.SIDE_B
+            and current_side
+            == VirtualGate.SIDE_A
+        ):
+            direction = VirtualGate.B_TO_A
+
+        if (
+            current_side
+            != VirtualGate.ON_GATE
+        ):
+            observed_gate_sides[
+                track_id
+            ] = current_side
+
+        if direction is None:
+            continue
+
+        observed_crossed_ids.add(
+            track_id
+        )
+
+        event = {
+            "track_id": track_id,
+            "direction": direction,
+            "point": current_point,
+        }
+
+        events.append(event)
+
+        print(
+            f"VIRTUAL GATE EVENT | "
+            f"ID #{track_id} | "
+            f"Arah = {direction} | "
+            f"Point = {current_point}"
+        )
+
+    return events
+
+def get_active_track_ids(result):
+    """
+    Mengambil tracking ID yang terlihat
+    pada frame saat ini.
+    """
+    active_track_ids = set()
+
+    if result.boxes is None:
+        return active_track_ids
+
+    for box in result.boxes:
+        if box.id is None:
+            continue
+
+        active_track_ids.add(
+            int(box.id[0])
+        )
+
+    return active_track_ids
 
 #################
 
@@ -281,10 +404,37 @@ while True:
 
     result = track(frame)
 
+    active_track_ids = get_active_track_ids(
+    result
+    )
+
     update_trajectories(
     result,
     trajectory_engine,
     )
+
+    gate_events = observe_virtual_gate(
+    trajectory_engine,
+    virtual_gate,
+    observed_gate_sides,
+    observed_crossed_ids,
+    )
+
+    for event in gate_events:
+
+        direction = event["direction"]
+
+        virtual_gate_count[
+            direction
+        ] += 1
+
+        print(
+            "VIRTUAL GATE COUNT | "
+            f"A_TO_B="
+            f"{virtual_gate_count[VirtualGate.A_TO_B]} | "
+            f"B_TO_A="
+            f"{virtual_gate_count[VirtualGate.B_TO_A]}"
+        )
 
     if frame_ke % 30 == 0:
         trajectories = (
@@ -347,6 +497,12 @@ while True:
     frame = draw_trajectories(
     frame,
     trajectory_engine,
+    active_track_ids,
+    )
+
+    frame = draw_virtual_gate(
+    frame,
+    virtual_gate,
     )
 
     frame = draw_speed_line_a(

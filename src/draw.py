@@ -742,12 +742,11 @@ def draw_compact_summary(
 def draw_trajectories(
     frame,
     trajectory_engine,
+    active_track_ids,
 ):
     """
-    Menggambar lintasan bottom-center setiap tracking ID.
-
-    Fungsi ini hanya untuk visualisasi.
-    Tidak memengaruhi counting, speed, atau database.
+    Menggambar trajectory kendaraan yang masih aktif
+    pada frame saat ini.
     """
 
     trajectories = (
@@ -755,12 +754,16 @@ def draw_trajectories(
         .get_all_trajectories()
     )
 
-    for track_id, points in trajectories.items():
+    for track_id in active_track_ids:
+
+        points = trajectories.get(
+            track_id,
+            []
+        )
 
         if len(points) < 2:
             continue
 
-        # Hubungkan setiap titik trajectory
         for index in range(
             1,
             len(points),
@@ -777,16 +780,46 @@ def draw_trajectories(
                 cv2.LINE_AA,
             )
 
-        # Tandai posisi terakhir
-        current_point = points[-1]
-
         cv2.circle(
             frame,
-            current_point,
+            points[-1],
             4,
             (0, 255, 255),
             -1,
             cv2.LINE_AA,
         )
+
+    return frame
+
+def draw_virtual_gate(
+    frame,
+    virtual_gate,
+):
+    """
+    Menggambar Virtual Gate sebagai garis kuning.
+    """
+
+    cv2.line(
+        frame,
+        virtual_gate.start_point,
+        virtual_gate.end_point,
+        (0, 255, 255),
+        3,
+        cv2.LINE_AA,
+    )
+
+    label_x = virtual_gate.start_point[0] + 10
+    label_y = virtual_gate.start_point[1] - 20
+
+    cv2.putText(
+        frame,
+        "VIRTUAL GATE OBSERVER",
+        (label_x, label_y),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.55,
+        (0, 255, 255),
+        2,
+        cv2.LINE_AA,
+    )
 
     return frame
