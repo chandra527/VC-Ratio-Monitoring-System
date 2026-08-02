@@ -185,8 +185,8 @@ class AuditEngine:
 
     def print_report(self):
         """
-        Menampilkan laporan perbandingan
-        ke terminal.
+        Menampilkan laporan perbandingan lengkap
+        antara counter lama dan Virtual Gate.
         """
 
         result = self.compare()
@@ -211,17 +211,74 @@ class AuditEngine:
             f"{result['matched_count']}"
         )
 
-        print(
-            f"Legacy Only      : "
-            f"{result['legacy_only_ids']}"
+        self._print_event_section(
+            title="LEGACY ONLY",
+            track_ids=result["legacy_only_ids"],
+            events=self.legacy_events,
         )
 
-        print(
-            f"Virtual Only     : "
-            f"{result['virtual_only_ids']}"
+        self._print_event_section(
+            title="VIRTUAL ONLY",
+            track_ids=result["virtual_only_ids"],
+            events=self.virtual_gate_events,
         )
 
         print("=" * 60)
+
+
+    def _print_event_section(
+        self,
+        title,
+        track_ids,
+        events,
+    ):
+        """
+        Menampilkan detail event yang hanya ditemukan
+        oleh salah satu algoritma.
+        """
+
+        print()
+        print("-" * 60)
+        print(title)
+        print("-" * 60)
+
+        if not track_ids:
+            print("Tidak ada.")
+            return
+
+        for track_id in track_ids:
+
+            event = events.get(track_id)
+
+            if event is None:
+                continue
+
+            print(
+                f"Track ID       : "
+                f"{event['track_id']}"
+            )
+
+            print(
+                f"Jenis          : "
+                f"{event['vehicle_type']}"
+            )
+
+            print(
+                f"Arah           : "
+                f"{event['direction']}"
+            )
+
+            print(
+                f"Frame          : "
+                f"{event['frame_number']}"
+            )
+
+            print(
+                f"Titik          : "
+                f"{event['point']}"
+            )
+
+            print("-" * 30)
 
     def clear(self):
         """
