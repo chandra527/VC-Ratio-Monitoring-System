@@ -102,29 +102,41 @@ class AuditEngine:
             point=point,
         )
 
-    def compare(self):
+    def compare(
+        self,
+        direction_filter="B_TO_A",
+    ):
         """
-        Membandingkan tracking ID kedua algoritma.
+        Membandingkan event counter lama dan Virtual Gate
+        pada arah yang sama.
 
-        Return:
-            matched:
-                Terhitung oleh kedua algoritma.
+        Default:
+            B_TO_A
 
-            legacy_only:
-                Terhitung counter lama,
-                tetapi tidak oleh Virtual Gate.
-
-            virtual_only:
-                Terhitung Virtual Gate,
-                tetapi tidak oleh counter lama.
+        Karena counter lama saat ini hanya menghitung
+        kendaraan arah B_TO_A.
         """
+
+        legacy_events_filtered = {
+            track_id: event
+            for track_id, event
+            in self.legacy_events.items()
+            if event["direction"] == direction_filter
+        }
+
+        virtual_events_filtered = {
+            track_id: event
+            for track_id, event
+            in self.virtual_gate_events.items()
+            if event["direction"] == direction_filter
+        }
 
         legacy_ids = set(
-            self.legacy_events.keys()
+            legacy_events_filtered.keys()
         )
 
         virtual_ids = set(
-            self.virtual_gate_events.keys()
+            virtual_events_filtered.keys()
         )
 
         matched_ids = (
@@ -140,9 +152,19 @@ class AuditEngine:
         )
 
         return {
-            "legacy_count": len(legacy_ids),
-            "virtual_count": len(virtual_ids),
-            "matched_count": len(matched_ids),
+            "direction_filter": direction_filter,
+
+            "legacy_count": len(
+                legacy_ids
+            ),
+
+            "virtual_count": len(
+                virtual_ids
+            ),
+
+            "matched_count": len(
+                matched_ids
+            ),
 
             "matched_ids": sorted(
                 matched_ids
@@ -154,6 +176,14 @@ class AuditEngine:
 
             "virtual_only_ids": sorted(
                 virtual_only_ids
+            ),
+
+            "legacy_events": (
+                legacy_events_filtered
+            ),
+
+            "virtual_events": (
+                virtual_events_filtered
             ),
         }
 
@@ -183,13 +213,18 @@ class AuditEngine:
 
         return None
 
-    def print_report(self):
+    def print_report(
+        self,
+        direction_filter="B_TO_A",
+    ):
         """
-        Menampilkan laporan perbandingan lengkap
-        antara counter lama dan Virtual Gate.
+        Menampilkan laporan perbandingan
+        untuk arah tertentu.
         """
 
-        result = self.compare()
+        result = self.compare(
+            direction_filter=direction_filter
+        )
 
         print()
         print("=" * 60)
@@ -197,30 +232,43 @@ class AuditEngine:
         print("=" * 60)
 
         print(
-            f"Legacy Count     : "
+            f"Arah dibandingkan : "
+            f"{result['direction_filter']}"
+        )
+
+        print(
+            f"Legacy Count      : "
             f"{result['legacy_count']}"
         )
 
         print(
-            f"Virtual Count    : "
+            f"Virtual Count     : "
             f"{result['virtual_count']}"
         )
 
         print(
-            f"Matched          : "
+            f"Matched           : "
             f"{result['matched_count']}"
         )
 
         self._print_event_section(
             title="LEGACY ONLY",
-            track_ids=result["legacy_only_ids"],
-            events=self.legacy_events,
+            track_ids=result[
+                "legacy_only_ids"
+            ],
+            events=result[
+                "legacy_events"
+            ],
         )
 
         self._print_event_section(
             title="VIRTUAL ONLY",
-            track_ids=result["virtual_only_ids"],
-            events=self.virtual_gate_events,
+            track_ids=result[
+                "virtual_only_ids"
+            ],
+            events=result[
+                "virtual_events"
+            ],
         )
 
         print("=" * 60)
@@ -279,6 +327,46 @@ class AuditEngine:
             )
 
             print("-" * 30)
+
+    def print_virtual_direction_summary(self):
+        """
+        Menampilkan jumlah Virtual Gate
+        untuk setiap arah.
+        """
+
+        a_to_b_count = sum(
+            1
+            for event
+            in self.virtual_gate_events.values()
+            if event["direction"] == "A_TO_B"
+        )
+
+        b_to_a_count = sum(
+            1
+            for event
+            in self.virtual_gate_events.values()
+            if event["direction"] == "B_TO_A"
+        )
+
+        print()
+        print("=" * 60)
+        print("VIRTUAL GATE DIRECTION SUMMARY")
+        print("=" * 60)
+
+        print(
+            f"A_TO_B : {a_to_b_count}"
+        )
+
+        print(
+            f"B_TO_A : {b_to_a_count}"
+        )
+
+        print(
+            f"Total  : "
+            f"{a_to_b_count + b_to_a_count}"
+        )
+
+        print("=" * 60)
 
     def clear(self):
         """

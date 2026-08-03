@@ -714,7 +714,11 @@ else:
 # AUDIT REPORT
 # ==========================================
 
-audit_engine.print_report()
+audit_engine.print_report(
+    direction_filter="B_TO_A"
+)
+
+audit_engine.print_virtual_direction_summary()
 
 video.release()
 cv2.destroyAllWindows()
