@@ -119,7 +119,7 @@ ACTIVE_CAMERA_NAME = CAMERA_NAMES.get(
 # TRACK DEBUG MODE
 # ==========================================
 
-DEBUG_TRACK_ENABLED = True
+DEBUG_TRACK_ENABLED = False
 
 DEBUG_TRACK_IDS = {
     3333,

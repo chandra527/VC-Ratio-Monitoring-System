@@ -127,17 +127,12 @@ trajectory_engine = TrajectoryEngine(
 # DEBUG TRACK
 # ==========================================
 
-
+#inisialisasi
 
 audit_engine = AuditEngine()
 
-virtual_gate = VirtualGate(
-    start_point=(100, 320),
-    end_point=(850, 320),
-    tolerance=5,
-)
+virtual_gate = None
 
-#inisialisasi
 observed_gate_sides = {}
 observed_crossed_ids = set()
 
@@ -401,18 +396,59 @@ while True:
         # Garis akhir speed sekaligus garis utama counting
         line_b_y = get_counting_line_y(frame)
 
-        # Garis awal speed, 100 piksel di atas Line B
+        # Garis awal speed
         line_a_y = get_speed_line_a_y(line_b_y)
 
         tracker = VehicleTracker(
-        line_y=line_b_y
+            line_y=line_b_y
         )
 
+        # Counter lama mulai menghitung ketika kendaraan
+        # mencapai batas atas counting zone.
+        legacy_trigger_y = (
+            tracker.line_y
+            - tracker.line_tolerance
+        )
+
+        # Virtual Gate disamakan dengan posisi trigger legacy
+        # agar perbandingan audit adil.
+        virtual_gate = VirtualGate(
+            start_point=(100, legacy_trigger_y),
+            end_point=(850, legacy_trigger_y),
+            tolerance=1,
+        )
+
+        print()
+        print("=" * 60)
+        print("COUNTING CONFIGURATION")
+        print("=" * 60)
+        print(
+            f"Legacy line Y       : "
+            f"{tracker.line_y}"
+        )
+        print(
+            f"Legacy tolerance    : "
+            f"{tracker.line_tolerance}"
+        )
+        print(
+            f"Legacy trigger Y    : "
+            f"{legacy_trigger_y}"
+        )
+        print(
+            f"Virtual Gate Y      : "
+            f"{virtual_gate.start_point[1]}"
+        )
+        print(
+            f"Virtual tolerance   : "
+            f"{virtual_gate.tolerance}"
+        )
+        print("=" * 60)
+
         speed_estimator = SpeedEstimator(
-        line_a_y=line_a_y,
-        line_b_y=line_b_y,
-        fps=fps,
-        distance_meters=10
+            line_a_y=line_a_y,
+            line_b_y=line_b_y,
+            fps=fps,
+            distance_meters=10,
         )
 
     result = track(frame)
