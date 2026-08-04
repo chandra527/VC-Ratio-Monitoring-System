@@ -27,6 +27,10 @@ from config import (
     MODEL_PATH,
     ACTIVE_CAMERA,
     ACTIVE_CAMERA_NAME,
+    DEBUG_TRACK_ENABLED,
+    DEBUG_TRACK_IDS,
+    SHOW_ONLY_DEBUG_TRACKS,
+    KEEP_DEBUG_TRAJECTORY_VISIBLE,
 )
 from trajectory_engine import TrajectoryEngine
 from yolo_detector import CLASS_NAMES, VEHICLE_CLASSES
@@ -118,6 +122,12 @@ speed_estimator = None
 trajectory_engine = TrajectoryEngine(
     max_history=30
 )
+
+# ==========================================
+# DEBUG TRACK
+# ==========================================
+
+
 
 audit_engine = AuditEngine()
 
@@ -416,6 +426,38 @@ while True:
     trajectory_engine,
     )
 
+    
+    # ==========================================
+    # LOG DEBUG TRACK ID
+    # ==========================================
+
+    if DEBUG_TRACK_ENABLED:
+        for debug_track_id in DEBUG_TRACK_IDS:
+
+            if debug_track_id not in active_track_ids:
+                continue
+
+            trajectory = (
+                trajectory_engine.get_trajectory(
+                debug_track_id
+                )
+            )
+
+            current_point = (
+                trajectory[-1]
+                if trajectory
+                else None
+            )
+
+            print(
+                f"DEBUG TRACK AKTIF | "
+                f"Frame={frame_ke} | "
+                f"ID={debug_track_id} | "
+                f"Point={current_point} | "
+                f"Trajectory Length="
+                f"{len(trajectory)}"
+            )
+
     gate_events = observe_virtual_gate(
     trajectory_engine,
     virtual_gate,
@@ -526,6 +568,19 @@ while True:
     frame,
     trajectory_engine,
     active_track_ids,
+    debug_track_ids=(
+        DEBUG_TRACK_IDS
+        if DEBUG_TRACK_ENABLED
+        else set()
+        ),
+    show_only_debug=(
+        SHOW_ONLY_DEBUG_TRACKS
+        if DEBUG_TRACK_ENABLED
+        else False
+        ),
+    keep_debug_visible=(
+        KEEP_DEBUG_TRAJECTORY_VISIBLE
+        ),
     )
 
     frame = draw_virtual_gate(
@@ -537,9 +592,7 @@ while True:
     frame,
     virtual_gate_count,
     )
-
-    frame_kecil = resize_frame(frame)
-
+    
     frame = draw_speed_line_a(
         frame,
         speed_estimator.line_a_y
@@ -549,6 +602,8 @@ while True:
         frame,
         tracker.line_y
     )
+
+    frame_kecil = resize_frame(frame)
 
 
     tinggi, lebar = frame.shape[:2]

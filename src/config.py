@@ -114,3 +114,25 @@ ACTIVE_CAMERA_NAME = CAMERA_NAMES.get(
     ACTIVE_CAMERA,
     f"Kamera {ACTIVE_CAMERA}"
 )
+
+# ==========================================
+# TRACK DEBUG MODE
+# ==========================================
+
+DEBUG_TRACK_ENABLED = True
+
+DEBUG_TRACK_IDS = {
+    3333,
+}
+
+# True:
+# hanya trajectory ID debug yang digambar.
+#
+# False:
+# semua trajectory digambar,
+# ID debug tetap diberi warna merah.
+SHOW_ONLY_DEBUG_TRACKS = True
+
+# Mempertahankan trajectory merah setelah
+# tracking ID sudah tidak aktif.
+KEEP_DEBUG_TRAJECTORY_VISIBLE = True

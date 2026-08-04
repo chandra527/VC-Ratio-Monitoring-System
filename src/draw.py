@@ -743,51 +743,133 @@ def draw_trajectories(
     frame,
     trajectory_engine,
     active_track_ids,
+    debug_track_ids=None,
+    show_only_debug=False,
+    keep_debug_visible=True,
 ):
     """
-    Menggambar trajectory kendaraan yang masih aktif
-    pada frame saat ini.
+    Menggambar trajectory kendaraan aktif.
+
+    debug_track_ids:
+        ID yang ingin disorot merah.
+
+    show_only_debug:
+        Jika True, hanya trajectory ID debug
+        yang ditampilkan.
     """
+
+    debug_track_ids = set(
+        debug_track_ids or []
+    )
 
     trajectories = (
         trajectory_engine
         .get_all_trajectories()
     )
 
-    for track_id in active_track_ids:
+    track_ids_to_draw = set(
+    active_track_ids
+    )
+
+    if keep_debug_visible:
+        track_ids_to_draw.update(
+            debug_track_ids
+        )
+
+    #for track_id in active_track_ids:
+    for track_id in track_ids_to_draw:
+
+        is_debug_track = (
+            track_id in debug_track_ids
+        )
+
+        if (
+            show_only_debug
+            and not is_debug_track
+        ):
+            continue
 
         points = trajectories.get(
             track_id,
-            []
+            [],
         )
 
         if len(points) < 2:
             continue
 
+        # Merah untuk ID audit,
+        # kuning untuk kendaraan biasa.
+        line_color = (
+            (0, 0, 255)
+            if is_debug_track
+            else (0, 255, 255)
+        )
+
+        line_thickness = (
+            8
+            if is_debug_track
+            else 2
+        )
+
         for index in range(
             1,
             len(points),
         ):
-            previous_point = points[index - 1]
-            current_point = points[index]
+            previous_point = points[
+                index - 1
+            ]
+
+            current_point = points[
+                index
+            ]
 
             cv2.line(
                 frame,
                 previous_point,
                 current_point,
-                (0, 255, 255),
-                2,
+                line_color,
+                line_thickness,
                 cv2.LINE_AA,
             )
 
+        current_point = points[-1]
+
+        if is_debug_track:
+            for point in points:
+                cv2.circle(
+                    frame,
+                    point,
+                    6,
+                    (0, 0, 255),
+                    -1,
+                    cv2.LINE_AA,
+                )
+
         cv2.circle(
             frame,
-            points[-1],
-            4,
-            (0, 255, 255),
+            current_point,
+            12 if is_debug_track else 4,
+            line_color,
             -1,
             cv2.LINE_AA,
         )
+
+        if is_debug_track:
+            label_position = (
+                current_point[0] + 10,
+                current_point[1] - 10,
+            )
+
+            cv2.putText(
+                frame,
+                f"DEBUG ID #{track_id}",
+                label_position,
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.65,
+                (0, 0, 255),
+                2,
+                cv2.LINE_AA,
+            )
 
     return frame
 
