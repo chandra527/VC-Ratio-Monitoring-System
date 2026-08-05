@@ -41,15 +41,34 @@ from audit_engine import AuditEngine
 
 selected_device = get_selected_device()
 
-def open_video_source(source, is_rtsp):
+def open_video_source(
+    source,
+    is_rtsp,
+):
     """
     Membuka file video atau stream RTSP.
+
+    Fungsi ini hanya membuat dan mengembalikan
+    objek cv2.VideoCapture.
     """
-    video = open_video_source(
-    source,
-    is_rtsp
-    )
-    
+
+    if is_rtsp:
+        video = cv2.VideoCapture(
+            source,
+            cv2.CAP_FFMPEG,
+        )
+
+        video.set(
+            cv2.CAP_PROP_BUFFERSIZE,
+            1,
+        )
+
+    else:
+        video = cv2.VideoCapture(
+            source
+        )
+
+    return video    
 
 benchmark_device = (
     "CUDA"
