@@ -31,6 +31,8 @@ from config import (
     DEBUG_TRACK_IDS,
     SHOW_ONLY_DEBUG_TRACKS,
     KEEP_DEBUG_TRAJECTORY_VISIBLE,
+    PERFORMANCE_AUDIT_ENABLED,
+    PERFORMANCE_REPORT_INTERVAL_FRAMES,
 )
 from trajectory_engine import TrajectoryEngine
 from yolo_detector import CLASS_NAMES, VEHICLE_CLASSES
@@ -164,6 +166,9 @@ SAVE_INTERVAL_SECONDS = 60
 last_save_time = time.time()
 
 benchmark_start_time = time.perf_counter()
+
+performance_last_time = time.perf_counter()
+performance_last_frame = 0
 
 benchmark_completed = False
 
@@ -388,7 +393,6 @@ while True:
     # Frame berhasil dibaca
     consecutive_read_failures = 0
 
-
     frame_ke += 1
 
     if tracker is None:
@@ -531,19 +535,7 @@ while True:
             f"{virtual_gate_count[VirtualGate.B_TO_A]}"
         )
 
-    if frame_ke % 30 == 0:
-        trajectories = (
-            trajectory_engine
-            .get_all_trajectories()
-        )
-
-        print(
-            f"TRAJECTORY DEBUG | "
-            f"Active tracks: "
-            f"{len(trajectories)}"
-        )
-
-
+    
     # VehicleTracker melakukan voting lebih dahulu
     #tracker.update(result)
 
@@ -567,6 +559,94 @@ while True:
 
 
     vehicle_data = tracker.get_vehicle_data()
+
+    if (
+        PERFORMANCE_AUDIT_ENABLED
+        and frame_ke
+        % PERFORMANCE_REPORT_INTERVAL_FRAMES
+        == 0
+    ):
+        performance_now = time.perf_counter()
+
+        interval_seconds = (
+            performance_now
+            - performance_last_time
+        )
+
+        interval_frames = (
+            frame_ke
+            - performance_last_frame
+        )
+
+        processing_fps = (
+            interval_frames / interval_seconds
+            if interval_seconds > 0
+            else 0.0
+        )
+
+        stored_trajectories = (
+            trajectory_engine
+            .get_all_trajectories()
+        )
+
+        active_track_count = len(
+            active_track_ids
+        )
+
+        stored_trajectory_count = len(
+            stored_trajectories
+        )
+
+        total_trajectory_points = sum(
+            len(points)
+            for points
+            in stored_trajectories.values()
+        )
+
+        print()
+        print("=" * 60)
+        print("PERFORMANCE AUDIT")
+        print("=" * 60)
+        print(
+            f"Frame aktif          : "
+            f"{frame_ke}"
+        )
+        print(
+            f"Processing FPS       : "
+            f"{processing_fps:.2f}"
+        )
+        print(
+            f"Track aktif frame    : "
+            f"{active_track_count}"
+        )
+        print(
+            f"Trajectory tersimpan : "
+            f"{stored_trajectory_count}"
+        )
+        print(
+            f"Total titik history  : "
+            f"{total_trajectory_points}"
+        )
+        print(
+            f"Gate side cache      : "
+            f"{len(observed_gate_sides)}"
+        )
+        print(
+            f"Gate crossed cache   : "
+            f"{len(observed_crossed_ids)}"
+        )
+        print(
+            f"Legacy track cache   : "
+            f"{len(tracker.track_frames)}"
+        )
+        print(
+            f"Legacy crossed cache : "
+            f"{len(tracker.crossed_ids)}"
+        )
+        print("=" * 60)
+
+        performance_last_time = performance_now
+        performance_last_frame = frame_ke
 
     vehicle_data, traffic_data = update_traffic_data(
         vehicle_data,

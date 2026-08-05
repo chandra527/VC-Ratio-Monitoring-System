@@ -136,3 +136,11 @@ SHOW_ONLY_DEBUG_TRACKS = True
 # Mempertahankan trajectory merah setelah
 # tracking ID sudah tidak aktif.
 KEEP_DEBUG_TRAJECTORY_VISIBLE = True
+
+
+# ==========================================
+# PERFORMANCE AUDIT
+# ==========================================
+
+PERFORMANCE_AUDIT_ENABLED = True
+PERFORMANCE_REPORT_INTERVAL_FRAMES = 300
