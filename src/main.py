@@ -38,6 +38,9 @@ from trajectory_engine import TrajectoryEngine
 from yolo_detector import CLASS_NAMES, VEHICLE_CLASSES
 from virtual_gate import VirtualGate
 from audit_engine import AuditEngine
+from birth_track_logger import BirthTrackLogger
+from birth_track_utils import record_birth_tracks
+
 
 selected_device = get_selected_device()
 
@@ -151,6 +154,8 @@ trajectory_engine = TrajectoryEngine(
 #inisialisasi
 
 audit_engine = AuditEngine()
+
+birth_logger = BirthTrackLogger()
 
 virtual_gate = None
 
@@ -477,14 +482,20 @@ while True:
     result = track(frame)
 
     active_track_ids = get_active_track_ids(
-    result
-    )
+        result
+        )
 
     update_trajectories(
-    result,
-    trajectory_engine,
+        result,
+        trajectory_engine,
+        )
+    
+    record_birth_tracks(
+        result=result,
+        frame_number=frame_ke,
+        birth_logger=birth_logger,
+        virtual_gate=virtual_gate,
     )
-
     
     # ==========================================
     # LOG DEBUG TRACK ID
@@ -641,6 +652,10 @@ while True:
         print(
             f"Trajectory tersimpan : "
             f"{stored_trajectory_count}"
+        )
+        print(
+            f"Birth track cache    : "
+            f"{birth_logger.count()}"
         )
         print(
             f"Total titik history  : "
