@@ -33,6 +33,8 @@ from config import (
     KEEP_DEBUG_TRAJECTORY_VISIBLE,
     PERFORMANCE_AUDIT_ENABLED,
     PERFORMANCE_REPORT_INTERVAL_FRAMES,
+    TIMELINE_DEBUG_ENABLED,
+    TIMELINE_DEBUG_TRACK_IDS,
 )
 from trajectory_engine import TrajectoryEngine
 from yolo_detector import CLASS_NAMES, VEHICLE_CLASSES
@@ -40,6 +42,13 @@ from virtual_gate import VirtualGate
 from audit_engine import AuditEngine
 from birth_track_logger import BirthTrackLogger
 from birth_track_utils import record_birth_tracks
+from track_timeline_debugger import (
+    TrackTimelineDebugger,
+)
+
+from track_timeline_utils import (
+    record_track_timelines,
+)
 
 
 selected_device = get_selected_device()
@@ -156,6 +165,8 @@ trajectory_engine = TrajectoryEngine(
 audit_engine = AuditEngine()
 
 birth_logger = BirthTrackLogger()
+
+timeline_debugger = TrackTimelineDebugger()
 
 virtual_gate = None
 
@@ -496,7 +507,19 @@ while True:
         birth_logger=birth_logger,
         virtual_gate=virtual_gate,
     )
-    
+
+    if TIMELINE_DEBUG_ENABLED:
+        record_track_timelines(
+            result=result,
+            frame_number=frame_ke,
+            timeline_debugger=timeline_debugger,
+            virtual_gate=virtual_gate,
+            debug_track_ids=(
+                TIMELINE_DEBUG_TRACK_IDS
+            ),
+        )
+
+        
     # ==========================================
     # LOG DEBUG TRACK ID
     # ==========================================
@@ -916,12 +939,34 @@ else:
     )
 
 # ==========================================
-# AUDIT REPORT
+# AUDIT DAN INVESTIGASI
 # ==========================================
+
+audit_result = audit_engine.compare(
+    direction_filter="B_TO_A"
+)
 
 audit_engine.print_report(
     direction_filter="B_TO_A"
 )
+
+birth_logger.print_legacy_only_analysis(
+    legacy_only_ids=audit_result[
+        "legacy_only_ids"
+    ],
+    legacy_events=audit_result[
+        "legacy_events"
+    ],
+)
+
+if TIMELINE_DEBUG_ENABLED:
+
+    for debug_track_id in (
+        TIMELINE_DEBUG_TRACK_IDS
+    ):
+        timeline_debugger.print_timeline(
+            track_id=debug_track_id
+        )
 
 audit_engine.print_virtual_direction_summary()
 
