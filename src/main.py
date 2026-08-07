@@ -455,7 +455,7 @@ while True:
         virtual_gate = VirtualGate(
             start_point=(100, legacy_trigger_y),
             end_point=(850, legacy_trigger_y),
-            tolerance=1,
+            tolerance=0,
         )
 
         print()
