@@ -278,7 +278,8 @@ def observe_virtual_gate(
         if track_id in observed_crossed_ids:
             continue
 
-        if len(points) < 2:
+        #if len(points) < 2:
+        if not points:
             continue
 
         current_point = points[-1]
