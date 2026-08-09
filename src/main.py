@@ -445,6 +445,17 @@ def observe_virtual_gate(
                 f"{frame_number}"
             )
 
+        if state["last_crossing_frame"] is not None:
+            print(
+                "MULTI-CROSSING EVENT | "
+                f"ID #{track_id} | "
+                f"Previous={state['last_direction']} | "
+                f"Current={direction} | "
+                f"Previous Frame="
+                f"{state['last_crossing_frame']} | "
+                f"Current Frame={frame_number}"
+            )
+
         state["last_crossing_frame"] = (
             frame_number
         )
