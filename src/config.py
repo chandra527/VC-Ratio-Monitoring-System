@@ -137,11 +137,9 @@ SHOW_ONLY_DEBUG_TRACKS = True
 # tracking ID sudah tidak aktif.
 KEEP_DEBUG_TRAJECTORY_VISIBLE = True
 
-TIMELINE_DEBUG_ENABLED = True
+TIMELINE_DEBUG_ENABLED = False
 
-TIMELINE_DEBUG_TRACK_IDS = {
-    4619,
-}
+TIMELINE_DEBUG_TRACK_IDS = set()
 
 # ==========================================
 # PERFORMANCE AUDIT
@@ -157,3 +155,9 @@ GATE_CROSSING_COOLDOWN_FRAMES = 10
 GATE_REARM_DISTANCE = 10
 GATE_HYSTERESIS_DISTANCE = 0
 
+# ==========================================
+# GATE DEBUG / INVESTIGATION
+# ==========================================
+
+BIRTH_DEBUG_ENABLED = False
+MULTI_CROSSING_DEBUG_ENABLED = False

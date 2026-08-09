@@ -38,6 +38,8 @@ from config import (
     GATE_CROSSING_COOLDOWN_FRAMES,
     GATE_REARM_DISTANCE,
     GATE_HYSTERESIS_DISTANCE,
+    BIRTH_DEBUG_ENABLED,
+    MULTI_CROSSING_DEBUG_ENABLED,
 )
 
 from trajectory_engine import TrajectoryEngine
@@ -432,20 +434,10 @@ def observe_virtual_gate(
         # ACCEPT CROSSING
         # ==========================================
 
-        if state["last_crossing_frame"] is not None:
-            print(
-                "MULTI-CROSSING EVENT | "
-                f"ID #{track_id} | "
-                f"Previous="
-                f"{state['last_direction']} | "
-                f"Current={direction} | "
-                f"Previous Frame="
-                f"{state['last_crossing_frame']} | "
-                f"Current Frame="
-                f"{frame_number}"
-            )
-
-        if state["last_crossing_frame"] is not None:
+        if (
+            MULTI_CROSSING_DEBUG_ENABLED
+            and state["last_crossing_frame"] is not None
+        ):
             print(
                 "MULTI-CROSSING EVENT | "
                 f"ID #{track_id} | "
@@ -641,12 +633,13 @@ while True:
         trajectory_engine,
         )
     
-    record_birth_tracks(
-        result=result,
-        frame_number=frame_ke,
-        birth_logger=birth_logger,
-        virtual_gate=virtual_gate,
-    )
+    if BIRTH_DEBUG_ENABLED:
+        record_birth_tracks(
+            result=result,
+            frame_number=frame_ke,
+            birth_logger=birth_logger,
+            virtual_gate=virtual_gate,
+        )
 
     if TIMELINE_DEBUG_ENABLED:
         record_track_timelines(
@@ -820,10 +813,11 @@ while True:
             f"Trajectory tersimpan : "
             f"{stored_trajectory_count}"
         )
-        print(
-            f"Birth track cache    : "
-            f"{birth_logger.count()}"
-        )
+        if BIRTH_DEBUG_ENABLED:
+            print(
+                f"Birth track cache    : "
+                f"{birth_logger.count()}"
+            )
         print(
             f"Total titik history  : "
             f"{total_trajectory_points}"
@@ -1093,15 +1087,15 @@ audit_result = audit_engine.compare(
 audit_engine.print_report(
     direction_filter="B_TO_A"
 )
-
-birth_logger.print_legacy_only_analysis(
-    legacy_only_ids=audit_result[
-        "legacy_only_ids"
-    ],
-    legacy_events=audit_result[
-        "legacy_events"
-    ],
-)
+if BIRTH_DEBUG_ENABLED:
+    birth_logger.print_legacy_only_analysis(
+        legacy_only_ids=audit_result[
+            "legacy_only_ids"
+        ],
+        legacy_events=audit_result[
+            "legacy_events"
+        ],
+    )
 
 if TIMELINE_DEBUG_ENABLED:
 
