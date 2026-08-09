@@ -35,7 +35,11 @@ from config import (
     PERFORMANCE_REPORT_INTERVAL_FRAMES,
     TIMELINE_DEBUG_ENABLED,
     TIMELINE_DEBUG_TRACK_IDS,
+    GATE_CROSSING_COOLDOWN_FRAMES,
+    GATE_REARM_DISTANCE,
+    GATE_HYSTERESIS_DISTANCE,
 )
+
 from trajectory_engine import TrajectoryEngine
 from yolo_detector import CLASS_NAMES, VEHICLE_CLASSES
 from virtual_gate import VirtualGate
@@ -171,7 +175,7 @@ timeline_debugger = TrackTimelineDebugger()
 virtual_gate = None
 
 observed_gate_sides = {}
-observed_crossed_ids = set()
+gate_crossing_states = {}
 
 virtual_gate_count = {
     VirtualGate.A_TO_B: 0,
@@ -257,13 +261,23 @@ def observe_virtual_gate(
     trajectory_engine,
     virtual_gate,
     observed_gate_sides,
-    observed_crossed_ids,
+    gate_crossing_states,
+    frame_number,
+    cooldown_frames,
+    rearm_distance,
+    hysteresis_distance,
 ):
     """
     Mendeteksi crossing Virtual Gate.
 
-    Satu tracking ID hanya menghasilkan
-    satu event crossing.
+    Satu tracking ID dapat menghasilkan
+    lebih dari satu crossing yang valid.
+
+    Pengaman:
+    - hysteresis terhadap jitter dekat garis;
+    - cooldown antar crossing;
+    - re-arm setelah kendaraan cukup jauh
+      dari gate.
     """
 
     events = []
@@ -275,24 +289,97 @@ def observe_virtual_gate(
 
     for track_id, points in trajectories.items():
 
-        if track_id in observed_crossed_ids:
-            continue
-
-        #if len(points) < 2:
         if not points:
             continue
 
         current_point = points[-1]
 
-        current_side = virtual_gate.get_side(
-            current_point
+        signed_distance = (
+            virtual_gate.get_signed_distance(
+                current_point
+            )
         )
+
+        # ==========================================
+        # HYSTERESIS SIDE
+        # ==========================================
+
+        if (
+            signed_distance
+            > hysteresis_distance
+        ):
+            current_side = (
+                VirtualGate.SIDE_A
+            )
+
+        elif (
+            signed_distance
+            < -hysteresis_distance
+        ):
+            current_side = (
+                VirtualGate.SIDE_B
+            )
+
+        else:
+            current_side = (
+                VirtualGate.ON_GATE
+            )
 
         previous_side = (
             observed_gate_sides.get(
                 track_id
             )
         )
+
+        state = gate_crossing_states.setdefault(
+            track_id,
+            {
+                "last_crossing_frame": None,
+                "last_direction": None,
+                "armed": True,
+            },
+        )
+
+        # ==========================================
+        # RE-ARM
+        # ==========================================
+
+        if not state["armed"]:
+
+            moved_far_enough = (
+                abs(signed_distance)
+                >= rearm_distance
+            )
+
+            last_direction = state[
+                "last_direction"
+            ]
+
+            on_expected_side = (
+                (
+                    last_direction
+                    == VirtualGate.B_TO_A
+                    and current_side
+                    == VirtualGate.SIDE_A
+                )
+                or
+                (
+                    last_direction
+                    == VirtualGate.A_TO_B
+                    and current_side
+                    == VirtualGate.SIDE_B
+                )
+            )
+
+            if (
+                moved_far_enough
+                and on_expected_side
+            ):
+                state["armed"] = True
+
+        # ==========================================
+        # DETECT DIRECTION
+        # ==========================================
 
         direction = None
 
@@ -312,6 +399,8 @@ def observe_virtual_gate(
         ):
             direction = VirtualGate.B_TO_A
 
+        # ON_GATE tidak mengganti
+        # last valid side.
         if (
             current_side
             != VirtualGate.ON_GATE
@@ -323,9 +412,48 @@ def observe_virtual_gate(
         if direction is None:
             continue
 
-        observed_crossed_ids.add(
-            track_id
+        if not state["armed"]:
+            continue
+
+        last_crossing_frame = state[
+            "last_crossing_frame"
+        ]
+
+        if (
+            last_crossing_frame is not None
+            and (
+                frame_number
+                - last_crossing_frame
+            ) < cooldown_frames
+        ):
+            continue
+
+        # ==========================================
+        # ACCEPT CROSSING
+        # ==========================================
+
+        if state["last_crossing_frame"] is not None:
+            print(
+                "MULTI-CROSSING EVENT | "
+                f"ID #{track_id} | "
+                f"Previous="
+                f"{state['last_direction']} | "
+                f"Current={direction} | "
+                f"Previous Frame="
+                f"{state['last_crossing_frame']} | "
+                f"Current Frame="
+                f"{frame_number}"
+            )
+
+        state["last_crossing_frame"] = (
+            frame_number
         )
+
+        state["last_direction"] = (
+            direction
+        )
+
+        state["armed"] = False
 
         event = {
             "track_id": track_id,
@@ -553,10 +681,14 @@ while True:
             )
 
     gate_events = observe_virtual_gate(
-    trajectory_engine,
-    virtual_gate,
-    observed_gate_sides,
-    observed_crossed_ids,
+        trajectory_engine,
+        virtual_gate,
+        observed_gate_sides,
+        gate_crossing_states,
+        frame_ke,
+        GATE_CROSSING_COOLDOWN_FRAMES,
+        GATE_REARM_DISTANCE,
+        GATE_HYSTERESIS_DISTANCE,
     )
 
     for event in gate_events:
@@ -691,7 +823,7 @@ while True:
         )
         print(
             f"Gate crossed cache   : "
-            f"{len(observed_crossed_ids)}"
+            f"{len(gate_crossing_states)}"
         )
         print(
             f"Legacy track cache   : "
