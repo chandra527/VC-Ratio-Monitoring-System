@@ -56,6 +56,8 @@ from track_timeline_utils import (
     record_track_timelines,
 )
 
+from traffic_volume_engine import TrafficVolumeEngine
+
 
 selected_device = get_selected_device()
 
@@ -217,6 +219,10 @@ benchmark_completed = False
 consecutive_read_failures = 0
 MAX_READ_FAILURES = 5
 reconnect_count = 0
+
+traffic_volume_engine = TrafficVolumeEngine(
+    window_seconds=60
+)
 
 def update_trajectories(
     result,
@@ -731,14 +737,37 @@ while True:
 
     legacy_events = tracker.update(result)
     
-    for event in legacy_events:
-        audit_engine.record_legacy(
-            track_id=event["track_id"],
-            vehicle_type=event["vehicle_type"],
+    for event in gate_events:
+
+        track_id = event["track_id"]
+
+        vehicle_type = tracker.get_vehicle_label(
+            track_id
+        )
+
+        audit_engine.record_virtual_gate(
+            track_id=track_id,
+            vehicle_type=vehicle_type,
             direction=event["direction"],
             frame_number=frame_ke,
             point=event["point"],
         )
+
+        if (
+            event["direction"]
+            == VirtualGate.B_TO_A
+        ):
+            traffic_volume_engine.add_vehicle(
+                vehicle_type
+            )
+
+            print(
+                "VC VOLUME INPUT | "
+                f"ID #{track_id} | "
+                f"Jenis={vehicle_type} | "
+                f"Arah={event['direction']} | "
+                f"Counts={traffic_volume_engine.counts}"
+            )
 
     # SpeedEstimator mengambil hasil voting tersebut
     speed_estimator.update(
