@@ -769,6 +769,37 @@ while True:
                 f"Counts={traffic_volume_engine.counts}"
             )
 
+    if traffic_volume_engine.is_window_complete():
+
+        volume_smp_per_hour = (
+            traffic_volume_engine
+            .get_volume_per_hour()
+        )
+
+        print()
+        print("=" * 60)
+        print("VC VOLUME REPORT - 1 MINUTE")
+        print("=" * 60)
+
+        print(
+            f"Counts     : "
+            f"{traffic_volume_engine.counts}"
+        )
+
+        print(
+            f"Total SMP  : "
+            f"{traffic_volume_engine.get_total_smp():.2f}"
+        )
+
+        print(
+            f"Volume     : "
+            f"{volume_smp_per_hour:.2f} smp/jam"
+        )
+
+        print("=" * 60)
+
+        traffic_volume_engine.reset()
+
     # SpeedEstimator mengambil hasil voting tersebut
     speed_estimator.update(
     result,

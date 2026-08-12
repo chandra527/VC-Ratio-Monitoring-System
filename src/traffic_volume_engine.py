@@ -1,3 +1,5 @@
+import time
+
 class TrafficVolumeEngine:
     """
     Menghitung volume lalu lintas berdasarkan
@@ -25,6 +27,8 @@ class TrafficVolumeEngine:
             "bus": 0,
             "truk": 0,
         }
+
+        self.window_start_time = time.time()
 
     def add_vehicle(
         self,
@@ -83,8 +87,8 @@ class TrafficVolumeEngine:
 
     def reset(self):
         """
-        Mengosongkan counter
-        untuk window berikutnya.
+        Mengosongkan counter dan memulai
+        window pengamatan baru.
         """
 
         for vehicle_type in self.counts:
@@ -92,4 +96,32 @@ class TrafficVolumeEngine:
                 vehicle_type
             ] = 0
 
+        self.window_start_time = time.time()
 
+    def is_window_complete(self):
+        """
+        Mengecek apakah window pengamatan
+        sudah mencapai durasi yang ditentukan.
+        """
+
+        elapsed = (
+            time.time()
+            - self.window_start_time
+        )
+
+        return (
+            elapsed
+            >= self.window_seconds
+        )
+
+    def get_elapsed_seconds(self):
+        """
+        Mengambil durasi window yang sudah berjalan.
+        """
+
+        return (
+            time.time()
+            - self.window_start_time
+        )
+
+    
