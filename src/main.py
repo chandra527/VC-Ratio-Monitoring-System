@@ -40,6 +40,11 @@ from config import (
     GATE_HYSTERESIS_DISTANCE,
     BIRTH_DEBUG_ENABLED,
     MULTI_CROSSING_DEBUG_ENABLED,
+    ROAD_BASE_CAPACITY,
+    ROAD_FC_WIDTH,
+    ROAD_FC_DIRECTION,
+    ROAD_FC_SIDE_FRICTION,
+    ROAD_FC_CITY_SIZE,
 )
 
 from trajectory_engine import TrajectoryEngine
@@ -231,11 +236,11 @@ traffic_volume_engine = TrafficVolumeEngine(
 )
 
 road_capacity_engine = RoadCapacityEngine(
-    base_capacity=1650,
-    fc_width=0.91,
-    fc_direction=1.0,
-    fc_side_friction=0.77,
-    fc_city_size=0.94,
+    base_capacity=ROAD_BASE_CAPACITY,
+    fc_width=ROAD_FC_WIDTH,
+    fc_direction=ROAD_FC_DIRECTION,
+    fc_side_friction=ROAD_FC_SIDE_FRICTION,
+    fc_city_size=ROAD_FC_CITY_SIZE,
 )
 
 vc_ratio_engine = VCRatioEngine()

@@ -161,3 +161,13 @@ GATE_HYSTERESIS_DISTANCE = 0
 
 BIRTH_DEBUG_ENABLED = False
 MULTI_CROSSING_DEBUG_ENABLED = False
+
+# ==========================================
+# ROAD CAPACITY CONFIG
+# ==========================================
+
+ROAD_BASE_CAPACITY = 1650
+ROAD_FC_WIDTH = 0.91
+ROAD_FC_DIRECTION = 1.0
+ROAD_FC_SIDE_FRICTION = 0.77
+ROAD_FC_CITY_SIZE = 0.94
