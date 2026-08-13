@@ -57,6 +57,8 @@ from track_timeline_utils import (
 )
 
 from traffic_volume_engine import TrafficVolumeEngine
+from road_capacity_engine import RoadCapacityEngine
+from vc_ratio_engine import VCRatioEngine
 
 
 selected_device = get_selected_device()
@@ -222,6 +224,24 @@ reconnect_count = 0
 
 traffic_volume_engine = TrafficVolumeEngine(
     window_seconds=60
+)
+
+traffic_volume_engine = TrafficVolumeEngine(
+    window_seconds=60
+)
+
+road_capacity_engine = RoadCapacityEngine(
+    base_capacity=1650,
+    fc_width=0.91,
+    fc_direction=1.0,
+    fc_side_friction=0.77,
+    fc_city_size=0.94,
+)
+
+vc_ratio_engine = VCRatioEngine()
+
+road_capacity = (
+    road_capacity_engine.get_capacity()
 )
 
 def update_trajectories(
@@ -776,6 +796,11 @@ while True:
             .get_volume_per_hour()
         )
 
+        vc_ratio = vc_ratio_engine.calculate(
+            volume=volume_smp_per_hour,
+            capacity=road_capacity,
+        )
+
         print()
         print("=" * 60)
         print("VC VOLUME REPORT - 1 MINUTE")
@@ -792,8 +817,18 @@ while True:
         )
 
         print(
-            f"Volume     : "
+            f"Volume (V)    : "
             f"{volume_smp_per_hour:.2f} smp/jam"
+        )
+
+        print(
+            f"Capacity(C) : "
+            f"{road_capacity:.2f} smp/jam"
+        )
+
+        print(
+            f"V/C Ratio   : "
+            f"{vc_ratio:.2f}"
         )
 
         print("=" * 60)
