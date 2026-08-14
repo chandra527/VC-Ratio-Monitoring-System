@@ -231,10 +231,6 @@ traffic_volume_engine = TrafficVolumeEngine(
     window_seconds=60
 )
 
-traffic_volume_engine = TrafficVolumeEngine(
-    window_seconds=60
-)
-
 road_capacity_engine = RoadCapacityEngine(
     base_capacity=ROAD_BASE_CAPACITY,
     fc_width=ROAD_FC_WIDTH,
@@ -248,6 +244,9 @@ vc_ratio_engine = VCRatioEngine()
 road_capacity = (
     road_capacity_engine.get_capacity()
 )
+
+latest_volume_smp_per_hour = 0.0
+latest_vc_ratio = 0.0
 
 def update_trajectories(
     result,
@@ -728,20 +727,6 @@ while True:
 
     for event in gate_events:
 
-        track_id = event["track_id"]
-
-        audit_engine.record_virtual_gate(
-            track_id=track_id,
-            vehicle_type=tracker.get_vehicle_label(
-                track_id
-            ),
-            direction=event["direction"],
-            frame_number=frame_ke,
-            point=event["point"],
-        )
-
-    for event in gate_events:
-
         direction = event["direction"]
 
         virtual_gate_count[
@@ -760,7 +745,21 @@ while True:
     # VehicleTracker melakukan voting lebih dahulu
     #tracker.update(result)
 
+    
+    # VehicleTracker melakukan voting lebih dahulu
     legacy_events = tracker.update(result)
+
+    for event in legacy_events:
+
+        audit_engine.record_legacy(
+            track_id=event["track_id"],
+            vehicle_type=event["vehicle_type"],
+            direction=event["direction"],
+            frame_number=frame_ke,
+            point=event["point"],
+        )
+
+    
     
     for event in gate_events:
 
@@ -805,6 +804,12 @@ while True:
             volume=volume_smp_per_hour,
             capacity=road_capacity,
         )
+
+        latest_volume_smp_per_hour = (
+            volume_smp_per_hour
+        )
+
+        latest_vc_ratio = vc_ratio
 
         print()
         print("=" * 60)
