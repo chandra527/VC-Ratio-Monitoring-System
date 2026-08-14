@@ -584,7 +584,10 @@ def draw_footer(dashboard):
 def draw_compact_summary(
     dashboard,
     vehicle_data,
-    traffic_data
+    traffic_data,
+    latest_volume_smp_per_hour,
+    road_capacity,
+    latest_vc_ratio,
 ):
 
     # =====================================
@@ -690,12 +693,22 @@ def draw_compact_summary(
     # =====================================
 
     traffic_columns = [
-        (500, "Volume",   traffic_data["volume"], GREEN),
-        (610, "Capacity", traffic_data["capacity"], GREEN),
+        (
+            500,
+            "Volume",
+            f"{latest_volume_smp_per_hour:.2f}",
+            GREEN
+        ),
+        (
+            610,
+            "Capacity",
+            f"{road_capacity:.2f}",
+            GREEN
+        ),
         (
             735,
             "V/C",
-            f'{traffic_data["vc_ratio"]:.2f}',
+            f"{latest_vc_ratio:.2f}",
             GREEN
         ),
         (
