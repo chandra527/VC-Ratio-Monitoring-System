@@ -1069,7 +1069,10 @@ while True:
     dashboard = draw_compact_summary(
     dashboard,
     vehicle_data,
-    traffic_data
+    traffic_data,
+    latest_volume_smp_per_hour,
+    road_capacity,
+    latest_vc_ratio,
     )
      
     #footer
