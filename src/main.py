@@ -248,6 +248,12 @@ road_capacity = (
 latest_volume_smp_per_hour = 0.0
 latest_vc_ratio = 0.0
 
+latest_status, latest_status_color = (
+    get_traffic_status(
+        latest_vc_ratio
+    )
+)
+
 def update_trajectories(
     result,
     trajectory_engine,
@@ -811,6 +817,12 @@ while True:
 
         latest_vc_ratio = vc_ratio
 
+        latest_status, latest_status_color = (
+            get_traffic_status(
+                latest_vc_ratio
+            )
+        )
+
         print()
         print("=" * 60)
         print("VC VOLUME REPORT - 1 MINUTE")
@@ -839,6 +851,11 @@ while True:
         print(
             f"V/C Ratio   : "
             f"{vc_ratio:.2f}"
+        )
+
+        print(
+            f"Status      : "
+            f"{latest_status}"
         )
 
         print("=" * 60)
@@ -1073,6 +1090,8 @@ while True:
     latest_volume_smp_per_hour,
     road_capacity,
     latest_vc_ratio,
+    latest_status,
+    latest_status_color,
     )
      
     #footer

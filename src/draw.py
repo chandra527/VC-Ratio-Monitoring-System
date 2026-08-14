@@ -588,6 +588,8 @@ def draw_compact_summary(
     latest_volume_smp_per_hour,
     road_capacity,
     latest_vc_ratio,
+    latest_status,
+    latest_status_color,
 ):
 
     # =====================================
@@ -714,8 +716,8 @@ def draw_compact_summary(
         (
             840,
             "Status",
-            traffic_data["status"],
-            traffic_data["warna_status"]
+            latest_status,
+            latest_status_color
         )
     ]
 
