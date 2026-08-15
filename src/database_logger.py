@@ -153,7 +153,7 @@ class DatabaseLogger:
     def save(
         self,
         vehicle_data,
-        traffic_data
+        vc_data
     ):
 
         timestamp = datetime.now()
@@ -167,6 +167,7 @@ class DatabaseLogger:
             cursor = connection.cursor()
 
             cursor.execute(
+
                 """
                 INSERT INTO traffic_logs (
                     timestamp,
@@ -176,13 +177,15 @@ class DatabaseLogger:
                     truk,
                     ambulans,
                     total,
+                    volume,
                     capacity,
                     vc_ratio,
                     status
                 )
                 VALUES (
                     %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s,
+                    %s
                 )
                 """,
                 (
@@ -193,12 +196,14 @@ class DatabaseLogger:
                     int(vehicle_data["truk"]),
                     int(vehicle_data["ambulans"]),
                     int(vehicle_data["total"]),
-                    int(traffic_data["capacity"]),
-                    float(traffic_data["vc_ratio"]),
-                    str(traffic_data["status"])
+
+                    float(vc_data["volume"]),
+                    float(vc_data["capacity"]),
+                    float(vc_data["vc_ratio"]),
+                    str(vc_data["status"])
                 )
             )
-
+                
             connection.commit()
 
             print(

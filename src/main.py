@@ -211,10 +211,6 @@ csv_logger = CSVLogger()
 
 database_logger = DatabaseLogger()
 
-SAVE_INTERVAL_SECONDS = 60
-
-last_save_time = time.time()
-
 benchmark_start_time = time.perf_counter()
 
 performance_last_time = time.perf_counter()
@@ -800,28 +796,35 @@ while True:
             )
 
     if traffic_volume_engine.is_window_complete():
-
+        # 1. Hitung V
         volume_smp_per_hour = (
             traffic_volume_engine
             .get_volume_per_hour()
         )
-
+        # 2. Hitung V/C
         vc_ratio = vc_ratio_engine.calculate(
             volume=volume_smp_per_hour,
             capacity=road_capacity,
         )
-
+        # 3. Simpan sebagai nilai terbaru
         latest_volume_smp_per_hour = (
             volume_smp_per_hour
         )
 
         latest_vc_ratio = vc_ratio
-
+        # 4. Tentukan status berdasarkan V/C baru
         latest_status, latest_status_color = (
             get_traffic_status(
                 latest_vc_ratio
             )
         )
+
+        latest_vc_data = {
+            "volume": latest_volume_smp_per_hour,
+            "capacity": road_capacity,
+            "vc_ratio": latest_vc_ratio,
+            "status": latest_status,
+        }
 
         print()
         print("=" * 60)
@@ -859,6 +862,16 @@ while True:
         )
 
         print("=" * 60)
+
+        csv_logger.save(
+            vehicle_data,
+            latest_vc_data,
+        )
+
+        database_logger.save(
+            vehicle_data,
+            latest_vc_data,
+        )
 
         traffic_volume_engine.reset()
 
@@ -971,24 +984,6 @@ while True:
     )
 
     current_time = time.time()
-
-    if (
-        current_time - last_save_time
-        >= SAVE_INTERVAL_SECONDS
-    ):
-
-        csv_logger.save(
-        vehicle_data,
-        traffic_data
-        )
-
-        database_logger.save(
-        vehicle_data,
-        traffic_data
-        )
-
-        last_save_time = current_time
-
 
     frame = draw_detection(
         frame,

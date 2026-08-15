@@ -54,7 +54,7 @@ class CSVLogger:
     def save(
         self,
         vehicle_data,
-        traffic_data
+        vc_data,
     ):
 
         timestamp = datetime.now().strftime(
@@ -78,11 +78,12 @@ class CSVLogger:
                 vehicle_data["truk"],
                 vehicle_data["ambulans"],
                 vehicle_data["total"],
-                traffic_data["capacity"],
-                f'{traffic_data["vc_ratio"]:.2f}',
-                traffic_data["status"]
+                f'{vc_data["volume"]:.2f}',
+                f'{vc_data["capacity"]:.2f}',
+                f'{vc_data["vc_ratio"]:.2f}',
+                vc_data["status"],
             ])
-
+            
         print(
             f"CSV TERSIMPAN: {timestamp}"
         )
