@@ -1187,8 +1187,25 @@ if frame_ke > 0:
     print(f"Truk           : {vehicle_data['truk']}")
     print(f"Ambulans       : {vehicle_data['ambulans']}")
     print(f"Total          : {vehicle_data['total']}")
-    print(f"VC Ratio       : {traffic_data['vc_ratio']:.4f}")
-    print(f"Status Jalan   : {traffic_data['status']}")
+    print(
+        f"Volume (V)     : "
+        f"{latest_volume_smp_per_hour:.2f} smp/jam"
+    )
+
+    print(
+        f"Capacity (C)   : "
+        f"{road_capacity:.2f} smp/jam"
+    )
+
+    print(
+        f"VC Ratio       : "
+        f"{latest_vc_ratio:.4f}"
+    )
+
+    print(
+        f"Status Jalan   : "
+        f"{latest_status}"
+    )
     print("=" * 60)
 
 else:
