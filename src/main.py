@@ -159,8 +159,6 @@ else:
 #panel_Vehicle_Count
 vehicle_data = create_vehicle_data()
 
-#panel_Traffic_Analysis
-traffic_data = create_traffic_data()
 
 #tracker = VehicleTracker()
 
@@ -978,9 +976,8 @@ while True:
         performance_last_time = performance_now
         performance_last_frame = frame_ke
 
-    vehicle_data, traffic_data = update_traffic_data(
-        vehicle_data,
-        traffic_data
+    vehicle_data = update_vehicle_total(
+        vehicle_data
     )
 
     current_time = time.time()
@@ -1073,15 +1070,9 @@ while True:
     #)
 
             
-    #dashboard = draw_analysis_panel(
-    #dashboard,
-    #traffic_data
-    #)
-
     dashboard = draw_compact_summary(
     dashboard,
     vehicle_data,
-    traffic_data,
     latest_volume_smp_per_hour,
     road_capacity,
     latest_vc_ratio,
@@ -1135,15 +1126,20 @@ if frame_ke > 0:
         else "STOPPED_BY_USER"
     )
 
+    benchmark_vc_data = {
+        "volume": latest_volume_smp_per_hour,
+        "capacity": road_capacity,
+        "vc_ratio": latest_vc_ratio,
+        "status": latest_status,
+    }
+
     database_logger.save_benchmark(
         model_name=os.path.basename(str(MODEL_PATH)),
-        #video_name=os.path.basename(str(VIDEO_PATH)),
         video_name=(
             ACTIVE_CAMERA_NAME
             if is_rtsp
             else os.path.basename(str(VIDEO_PATH))
         ),
-        #device=str(selected_device),
         device=benchmark_device,
         run_status=benchmark_status,
         processed_frames=frame_ke,
@@ -1151,7 +1147,7 @@ if frame_ke > 0:
         processing_seconds=benchmark_processing_seconds,
         average_fps=benchmark_average_fps,
         vehicle_data=vehicle_data,
-        traffic_data=traffic_data,
+        vc_data=benchmark_vc_data,
         notes=(
             "Pengujian aplikasi VC Ratio pada server Dishub. "
             f"Total RTSP reconnect: {reconnect_count}"

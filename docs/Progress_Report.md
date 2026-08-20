@@ -269,6 +269,8 @@ CSV TERSIMPAN: 2026-07-16 11:25:09
 
 Menyimpan data lalu lintas ke database lokal.
 
+> **Catatan:** Implementasi pada tahap ini menggunakan SQLite sebagai database lokal.
+> Pada pengembangan berikutnya, sistem telah dimigrasikan ke MySQL dan `output/traffic_data.db` tidak lagi digunakan pada runtime aktif.
 ### Hasil
 
 ✅ Berhasil membuat modul:

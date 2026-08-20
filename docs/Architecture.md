@@ -61,18 +61,19 @@ Traffic Analysis
 
 # 3. Struktur Folder
 
+# 3. Struktur Folder
+
 ```text
-VC_RATIO_PROJECT_NEW
+VC-Ratio-Monitoring-System
 │
 ├── data/
-│   └── pak_kasih.dav
+│   └── benchmark_10menit_25_35.mp4
 │
 ├── models/
-│   └── yolov8n.pt
+│   └── yolo11s.pt
 │
 ├── output/
-│   ├── traffic_log.csv
-│   └── traffic_data.db
+│   └── traffic_log.csv
 │
 ├── docs/
 │   ├── Progress_Report.md
@@ -80,6 +81,8 @@ VC_RATIO_PROJECT_NEW
 │
 ├── src/
 │   ├── main.py
+│   ├── config.py
+│   ├── hardware.py
 │   ├── layout.py
 │   ├── draw.py
 │   ├── processing.py
@@ -89,8 +92,15 @@ VC_RATIO_PROJECT_NEW
 │   ├── vehicle_tracker.py
 │   ├── line_counter.py
 │   ├── speed_estimator.py
+│   ├── traffic_volume_engine.py
+│   ├── road_capacity_engine.py
+│   ├── vc_ratio_engine.py
+│   ├── virtual_gate.py
+│   ├── trajectory_engine.py
+│   ├── audit_engine.py
 │   ├── csv_logger.py
-│   └── database_logger.py
+│   ├── database_logger.py
+│   └── test_mysql.py
 │
 ├── .gitignore
 ├── README.md
@@ -473,77 +483,80 @@ Pada tahap berikutnya data speed dapat ditambahkan sesuai desain penyimpanan yan
 
 ## `database_logger.py`
 
-Bertanggung jawab menyimpan data lalu lintas ke SQLite.
-
-Output:
-
-```text
-output/traffic_data.db
-```
+Bertanggung jawab menyimpan data monitoring lalu lintas dan hasil benchmark ke MySQL.
 
 Tabel utama:
 
 ```text
 traffic_logs
+benchmark_results
 ```
 
-Data yang disimpan saat ini sama dengan data CSV.
+Data monitoring yang disimpan pada `traffic_logs` meliputi:
 
-Modul ini dapat dikembangkan untuk menyimpan:
+```text
+timestamp
+motor
+mobil
+bus
+truk
+ambulans
+total
+volume
+capacity
+vc_ratio
+status
+```
 
-- rata-rata kecepatan,
-- kecepatan per kendaraan,
-- identitas kamera,
-- lokasi,
-- waktu pengamatan.
+Nilai `volume`, `capacity`, `vc_ratio`, dan `status` berasal dari pipeline perhitungan V/C aktif, bukan dari total kendaraan kumulatif.
 
+Tabel `benchmark_results` digunakan untuk menyimpan hasil pengujian performa model, termasuk FPS, jumlah kendaraan, V/C Ratio, dan status lalu lintas.
 ---
 
 # 5. Aliran Data Antar-Modul
 
 ```text
-main.py
-   │
-   ├── membaca frame dari OpenCV
-   │
-   ▼
-tracker.py
-   │
-   ├── menjalankan YOLOv8 dan ByteTrack
-   │
-   ▼
-result.boxes
-   │
-   ├──────────────► yolo_detector.py
-   │                 menggambar bounding box
-   │
-   ├──────────────► vehicle_tracker.py
-   │                 menghitung kendaraan
-   │                       │
-   │                       ▼
-   │                 vehicle_data
-   │
-   └──────────────► speed_estimator.py
-                     menghitung estimasi speed
-                           │
-                           ▼
-                      speed_data
-
-vehicle_data
-     │
-     ▼
-processing.py
-     │
-     ▼
-traffic_data
-     │
-     ├──────────────► draw.py
-     ├──────────────► csv_logger.py
-     └──────────────► database_logger.py
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-          Dashboard        CSV        SQLite
+YOLO + ByteTrack
+      │
+      ▼
+Vehicle Tracking
+      │
+      ├──────────────► vehicle_data
+      │                    │
+      │                    ▼
+      │             Vehicle Count
+      │
+      ▼
+Virtual Gate (B_TO_A)
+      │
+      ▼
+TrafficVolumeEngine
+      │
+      ▼
+Volume (smp/jam)
+      │
+      ├─────────────────────────┐
+      │                         │
+      ▼                         ▼
+RoadCapacityEngine        VCRatioEngine
+      │                         │
+      ▼                         │
+Capacity (smp/jam) ─────────────┘
+                                │
+                                ▼
+                           V/C Ratio
+                                │
+                                ▼
+                      get_traffic_status()
+                                │
+                                ▼
+                         Status Jalan
+                                │
+               ┌────────────────┼────────────────┐
+               ▼                ▼                ▼
+           Dashboard           CSV             MySQL
+                                             ├─ traffic_logs
+                                             └─ benchmark_results
 ```
 
 ---

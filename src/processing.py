@@ -2,6 +2,8 @@ import cv2
 
 from layout import *
 
+from utils import calculate_total
+
 #1
 def convert_to_gray(frame):
     # Mengubah menjadi hitam putih
@@ -58,49 +60,19 @@ def edge_detection(frame):
 
     return edge
 
-from utils import calculate_total
-
-from utils import calculate_vc_ratio
-
-from utils import get_traffic_status
 
 
-def update_traffic_data(
 
+
+def update_vehicle_total(
     vehicle_data,
+):
+    """
+    Memperbarui total kendaraan kumulatif.
+    """
 
-    traffic_data
-
-    ):
-
-    # Hitung total kendaraan
     vehicle_data["total"] = calculate_total(
-
         vehicle_data
+    )
 
-        )
-
-    # Volume sementara = total kendaraan
-    traffic_data["volume"] = vehicle_data["total"]
-
-    # Hitung VC Ratio
-    traffic_data["vc_ratio"] = calculate_vc_ratio(
-
-        traffic_data["volume"],
-
-        traffic_data["capacity"]
-
-        )
-
-    # Tentukan status lalu lintas
-    status, warna = get_traffic_status(
-
-        traffic_data["vc_ratio"]
-
-        )
-
-    traffic_data["status"] = status
-
-    traffic_data["warna_status"] = warna
-
-    return vehicle_data, traffic_data
+    return vehicle_data

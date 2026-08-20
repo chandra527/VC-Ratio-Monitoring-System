@@ -12,13 +12,14 @@ vehicle_data = {
     "total": 14
 }
 
-traffic_data = {
-    "capacity": 600,
-    "vc_ratio": 0.0233,
+vc_data = {
+    "volume": 240.00,
+    "capacity": 1086.79,
+    "vc_ratio": 0.2208,
     "status": "LANCAR"
 }
 
 database_logger.save(
     vehicle_data,
-    traffic_data
+    vc_data
 )

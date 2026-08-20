@@ -82,23 +82,6 @@ def calculate_total(vehicle_data):
     return total
 
 
-def create_traffic_data():
-
-     return {
-        "volume": 0,
-        "capacity": 320,
-        "vc_ratio": 0
-    }
-
-
-def calculate_vc_ratio(volume, capacity):
-
-    if capacity == 0:
-        return 0
-
-    return volume / capacity
-
-
 def get_traffic_status(vc_ratio):
 
     if vc_ratio < 0.60:

@@ -236,9 +236,9 @@ class DatabaseLogger:
         processing_seconds,
         average_fps,
         vehicle_data,
-        traffic_data,
-        notes=None
-    ):
+        vc_data,
+        notes,
+        ):
 
         tested_at = datetime.now()
 
@@ -296,8 +296,8 @@ class DatabaseLogger:
                     int(vehicle_data["truk"]),
                     int(vehicle_data["ambulans"]),
                     int(vehicle_data["total"]),
-                    float(traffic_data["vc_ratio"]),
-                    str(traffic_data["status"]),
+                    float(vc_data["vc_ratio"]),
+                    str(vc_data["status"]),
                     notes
                 )
             )
