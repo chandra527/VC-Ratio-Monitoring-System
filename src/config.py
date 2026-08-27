@@ -107,7 +107,7 @@ WINDOW_NAME = os.getenv(
 
 CAMERA_NAMES = {
     "1": "Kamera Komyos sudarso tengah",
-    "2": "Kamera Komyos ujung",
+    "2": "Kamera Jl. Patimura",
 }
 
 ACTIVE_CAMERA_NAME = CAMERA_NAMES.get(
@@ -154,6 +154,23 @@ PERFORMANCE_REPORT_INTERVAL_FRAMES = 300
 GATE_CROSSING_COOLDOWN_FRAMES = 10
 GATE_REARM_DISTANCE = 10
 GATE_HYSTERESIS_DISTANCE = 0
+
+# ==========================================
+# VIRTUAL GATE POSITION
+# Pattimura - Matahari Mall
+# ==========================================
+
+VIRTUAL_GATE_START_POINT = (1550, 570)
+VIRTUAL_GATE_END_POINT = (450, 800)
+
+# ==========================================
+# VC TRAFFIC DIRECTION
+# ==========================================
+
+# Arah lalu lintas yang digunakan
+# untuk perhitungan Volume dan V/C Ratio.
+# Fokus saat ini: B -> A di Jl. Pattimura.
+VC_TARGET_DIRECTION = "B_TO_A"
 
 # ==========================================
 # GATE DEBUG / INVESTIGATION

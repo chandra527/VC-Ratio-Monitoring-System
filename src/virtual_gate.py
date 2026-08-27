@@ -60,6 +60,61 @@ class VirtualGate:
 
         return cross_product / self.length
 
+    def intersects_segment(
+        self,
+        previous_point,
+        current_point,
+    ):
+        """
+        Mengecek apakah trajectory kendaraan
+        benar-benar memotong segmen Virtual Gate.
+
+        Bukan sekadar memotong perpanjangan
+        garis Virtual Gate.
+        """
+
+        if (
+            previous_point is None
+            or current_point is None
+        ):
+            return False
+
+        p_x, p_y = previous_point
+        r_x = current_point[0] - p_x
+        r_y = current_point[1] - p_y
+
+        q_x, q_y = self.start_point
+        s_x = self.end_point[0] - q_x
+        s_y = self.end_point[1] - q_y
+
+        denominator = (
+            r_x * s_y
+            - r_y * s_x
+        )
+
+        # Paralel / tidak memiliki
+        # titik potong yang jelas.
+        if denominator == 0:
+            return False
+
+        q_minus_p_x = q_x - p_x
+        q_minus_p_y = q_y - p_y
+
+        t = (
+            q_minus_p_x * s_y
+            - q_minus_p_y * s_x
+        ) / denominator
+
+        u = (
+            q_minus_p_x * r_y
+            - q_minus_p_y * r_x
+        ) / denominator
+
+        return (
+            0.0 <= t <= 1.0
+            and 0.0 <= u <= 1.0
+        )
+
     def get_side(self, point):
         signed_distance = self.get_signed_distance(
             point

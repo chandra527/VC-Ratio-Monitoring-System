@@ -45,6 +45,9 @@ from config import (
     ROAD_FC_DIRECTION,
     ROAD_FC_SIDE_FRICTION,
     ROAD_FC_CITY_SIZE,
+    VIRTUAL_GATE_START_POINT,
+    VIRTUAL_GATE_END_POINT,
+    VC_TARGET_DIRECTION,
 )
 
 from trajectory_engine import TrajectoryEngine
@@ -326,6 +329,11 @@ def observe_virtual_gate(
 
         current_point = points[-1]
 
+        previous_point = None
+
+        if len(points) >= 2:
+            previous_point = points[-2]
+
         signed_distance = (
             virtual_gate.get_signed_distance(
                 current_point
@@ -421,7 +429,7 @@ def observe_virtual_gate(
             and current_side
             == VirtualGate.SIDE_B
         ):
-            direction = VirtualGate.A_TO_B
+            direction = VirtualGate.B_TO_A
 
         elif (
             previous_side
@@ -429,7 +437,7 @@ def observe_virtual_gate(
             and current_side
             == VirtualGate.SIDE_A
         ):
-            direction = VirtualGate.B_TO_A
+            direction = VirtualGate.A_TO_B
 
         # ON_GATE tidak mengganti
         # last valid side.
@@ -442,6 +450,16 @@ def observe_virtual_gate(
             ] = current_side
 
         if direction is None:
+            continue
+
+        # ==========================================
+        # SEGMENT BOUNDARY CHECK
+        # ==========================================
+
+        if not virtual_gate.intersects_segment(
+            previous_point,
+            current_point,
+        ):
             continue
 
         if not state["armed"]:
@@ -614,8 +632,8 @@ while True:
         # Virtual Gate disamakan dengan posisi trigger legacy
         # agar perbandingan audit adil.
         virtual_gate = VirtualGate(
-            start_point=(100, legacy_trigger_y),
-            end_point=(850, legacy_trigger_y),
+            start_point=VIRTUAL_GATE_START_POINT,
+            end_point=VIRTUAL_GATE_END_POINT,
             tolerance=0,
         )
 
@@ -779,7 +797,7 @@ while True:
 
         if (
             event["direction"]
-            == VirtualGate.B_TO_A
+            == VC_TARGET_DIRECTION
         ):
             traffic_volume_engine.add_vehicle(
                 vehicle_type
@@ -1022,11 +1040,12 @@ while True:
         frame,
         speed_estimator.line_a_y
     )
-
-    frame = draw_counting_line(
-        frame,
-        tracker.line_y
-    )
+    # Legacy line tetap aktif untuk audit,
+    # tetapi tidak ditampilkan di dashboard.
+    #frame = draw_counting_line(
+    #    frame,
+    #   tracker.line_y
+    #)
 
     frame_kecil = resize_frame(frame)
 
@@ -1216,11 +1235,11 @@ else:
 # ==========================================
 
 audit_result = audit_engine.compare(
-    direction_filter="B_TO_A"
+    direction_filter=VC_TARGET_DIRECTION
 )
 
 audit_engine.print_report(
-    direction_filter="B_TO_A"
+    direction_filter=VC_TARGET_DIRECTION
 )
 if BIRTH_DEBUG_ENABLED:
     birth_logger.print_legacy_only_analysis(

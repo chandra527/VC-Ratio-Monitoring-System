@@ -104,7 +104,7 @@ class AuditEngine:
 
     def compare(
         self,
-        direction_filter="B_TO_A",
+        direction_filter=None,
     ):
         """
         Membandingkan event counter lama dan Virtual Gate
@@ -116,6 +116,10 @@ class AuditEngine:
         Karena counter lama saat ini hanya menghitung
         kendaraan arah B_TO_A.
         """
+        if direction_filter is None:
+            raise ValueError(
+                "direction_filter wajib ditentukan."
+            )
 
         legacy_events_filtered = {
             track_id: event
@@ -215,12 +219,17 @@ class AuditEngine:
 
     def print_report(
         self,
-        direction_filter="B_TO_A",
+        direction_filter=None,
     ):
         """
         Menampilkan laporan perbandingan
         untuk arah tertentu.
         """
+
+        if direction_filter is None:
+            raise ValueError(
+                "direction_filter wajib ditentukan."
+            )
 
         result = self.compare(
             direction_filter=direction_filter
