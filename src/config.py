@@ -64,6 +64,12 @@ ACTIVE_CAMERA = os.getenv(
     "1"
 )
 
+#untuk database berbeda dengan ACTIVE_CAMERA yang utk RTSP
+ACTIVE_CAMERA_CODE = os.getenv(
+    "ACTIVE_CAMERA_CODE",
+    "pattimura"
+)
+
 RTSP_CAMERAS = {
     "1": os.getenv("RTSP_CAMERA_1"),
     "2": os.getenv("RTSP_CAMERA_2"),

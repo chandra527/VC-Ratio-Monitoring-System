@@ -48,6 +48,7 @@ from config import (
     VIRTUAL_GATE_START_POINT,
     VIRTUAL_GATE_END_POINT,
     VC_TARGET_DIRECTION,
+    ACTIVE_CAMERA_CODE,
 )
 
 from trajectory_engine import TrajectoryEngine
@@ -1040,6 +1041,7 @@ while True:
         frame,
         speed_estimator.line_a_y
     )
+
     # Legacy line tetap aktif untuk audit,
     # tetapi tidak ditampilkan di dashboard.
     #frame = draw_counting_line(

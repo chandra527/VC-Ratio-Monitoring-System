@@ -4,6 +4,7 @@ from datetime import datetime
 import mysql.connector
 from dotenv import load_dotenv
 from mysql.connector import Error
+from config import ACTIVE_CAMERA_CODE
 
 
 load_dotenv()
@@ -166,10 +167,33 @@ class DatabaseLogger:
             connection = self._connect()
             cursor = connection.cursor()
 
+            # Cari ID kamera berdasarkan code kamera aktif
+            cursor.execute(
+                """
+                SELECT id
+                FROM cameras
+                WHERE code = %s
+                AND is_active = 1
+                LIMIT 1
+                """,
+                (ACTIVE_CAMERA_CODE,)
+            )
+
+            camera_row = cursor.fetchone()
+
+            if camera_row is None:
+                raise RuntimeError(
+                    "Kamera aktif tidak ditemukan "
+                    f"di database: {ACTIVE_CAMERA_CODE}"
+                )
+
+            camera_id = camera_row[0]
+
             cursor.execute(
 
                 """
                 INSERT INTO traffic_logs (
+                    camera_id,
                     timestamp,
                     motor,
                     mobil,
@@ -185,10 +209,11 @@ class DatabaseLogger:
                 VALUES (
                     %s, %s, %s, %s, %s,
                     %s, %s, %s, %s, %s,
-                    %s
+                    %s, %s
                 )
                 """,
                 (
+                    camera_id,
                     timestamp,
                     int(vehicle_data["motor"]),
                     int(vehicle_data["mobil"]),
@@ -209,6 +234,8 @@ class DatabaseLogger:
             print(
                 "MYSQL TERSIMPAN: "
                 f"{timestamp:%Y-%m-%d %H:%M:%S}"
+                f"| Kamera={ACTIVE_CAMERA_CODE} "
+                f"| camera_id={camera_id}"
             )
 
         except Error as error:
