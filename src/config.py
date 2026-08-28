@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-
+from camera_profiles import get_camera_profile
 
 # ==========================================
 # PROJECT PATH
@@ -70,9 +70,14 @@ ACTIVE_CAMERA_CODE = os.getenv(
     "pattimura"
 )
 
+CAMERA_PROFILE = get_camera_profile(
+    ACTIVE_CAMERA_CODE
+)
+
 RTSP_CAMERAS = {
     "1": os.getenv("RTSP_CAMERA_1"),
     "2": os.getenv("RTSP_CAMERA_2"),
+    "3": os.getenv("RTSP_CAMERA_3"),
 }
 
 if VIDEO_SOURCE_TYPE == "rtsp":
@@ -113,7 +118,8 @@ WINDOW_NAME = os.getenv(
 
 CAMERA_NAMES = {
     "1": "Kamera Komyos sudarso tengah",
-    "2": "Kamera Jl. Patimura",
+    "2": "Kamera Jl. Pattimura",
+    "3": "Kamera Jl. Jendral Urip",
 }
 
 ACTIVE_CAMERA_NAME = CAMERA_NAMES.get(
@@ -166,9 +172,13 @@ GATE_HYSTERESIS_DISTANCE = 0
 # Pattimura - Matahari Mall
 # ==========================================
 
-VIRTUAL_GATE_START_POINT = (1550, 570)
-VIRTUAL_GATE_END_POINT = (450, 800)
+VIRTUAL_GATE_START_POINT = (
+    CAMERA_PROFILE["virtual_gate_start"]
+)
 
+VIRTUAL_GATE_END_POINT = (
+    CAMERA_PROFILE["virtual_gate_end"]
+)
 # ==========================================
 # VC TRAFFIC DIRECTION
 # ==========================================
@@ -176,8 +186,9 @@ VIRTUAL_GATE_END_POINT = (450, 800)
 # Arah lalu lintas yang digunakan
 # untuk perhitungan Volume dan V/C Ratio.
 # Fokus saat ini: B -> A di Jl. Pattimura.
-VC_TARGET_DIRECTION = "B_TO_A"
-
+VC_TARGET_DIRECTION = (
+    CAMERA_PROFILE["target_direction"]
+)
 # ==========================================
 # GATE DEBUG / INVESTIGATION
 # ==========================================
@@ -189,8 +200,22 @@ MULTI_CROSSING_DEBUG_ENABLED = False
 # ROAD CAPACITY CONFIG
 # ==========================================
 
-ROAD_BASE_CAPACITY = 1650
-ROAD_FC_WIDTH = 0.91
-ROAD_FC_DIRECTION = 1.0
-ROAD_FC_SIDE_FRICTION = 0.77
-ROAD_FC_CITY_SIZE = 0.94
+ROAD_BASE_CAPACITY = (
+    CAMERA_PROFILE["road_base_capacity"]
+)
+
+ROAD_FC_WIDTH = (
+    CAMERA_PROFILE["road_fc_width"]
+)
+
+ROAD_FC_DIRECTION = (
+    CAMERA_PROFILE["road_fc_direction"]
+)
+
+ROAD_FC_SIDE_FRICTION = (
+    CAMERA_PROFILE["road_fc_side_friction"]
+)
+
+ROAD_FC_CITY_SIZE = (
+    CAMERA_PROFILE["road_fc_city_size"]
+)
