@@ -3,6 +3,7 @@ import numpy as np
 
 from layout import *
 from utils import *
+from config import ACTIVE_CAMERA_NAME
 
 # =====================================================
 # CREATE DASHBOARD
@@ -126,7 +127,7 @@ def draw_header(dashboard):
     )
 
     # Nama kamera
-    text = "Camera : Jl. Pak Kasih"
+    text = f"Camera : {ACTIVE_CAMERA_NAME}"
 
     text_size, _ = cv2.getTextSize(
         text,

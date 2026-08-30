@@ -74,6 +74,11 @@ CAMERA_PROFILE = get_camera_profile(
     ACTIVE_CAMERA_CODE
 )
 
+CAMERA_CALIBRATION_MODE = (
+    CAMERA_PROFILE["target_direction"] is None
+    or CAMERA_PROFILE["road_base_capacity"] is None
+)
+
 RTSP_CAMERAS = {
     "1": os.getenv("RTSP_CAMERA_1"),
     "2": os.getenv("RTSP_CAMERA_2"),

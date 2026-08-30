@@ -49,6 +49,7 @@ from config import (
     VIRTUAL_GATE_END_POINT,
     VC_TARGET_DIRECTION,
     ACTIVE_CAMERA_CODE,
+    CAMERA_CALIBRATION_MODE,
 )
 
 from trajectory_engine import TrajectoryEngine
@@ -229,19 +230,33 @@ traffic_volume_engine = TrafficVolumeEngine(
     window_seconds=60
 )
 
-road_capacity_engine = RoadCapacityEngine(
-    base_capacity=ROAD_BASE_CAPACITY,
-    fc_width=ROAD_FC_WIDTH,
-    fc_direction=ROAD_FC_DIRECTION,
-    fc_side_friction=ROAD_FC_SIDE_FRICTION,
-    fc_city_size=ROAD_FC_CITY_SIZE,
-)
-
 vc_ratio_engine = VCRatioEngine()
 
-road_capacity = (
-    road_capacity_engine.get_capacity()
-)
+if CAMERA_CALIBRATION_MODE:
+    road_capacity_engine = None
+    road_capacity = 0.0
+
+    print()
+    print("=" * 60)
+    print("CAMERA CALIBRATION MODE")
+    print("=" * 60)
+    print("V/C calculation : DISABLED")
+    print("Traffic logging  : DISABLED")
+    print("Virtual Gate     : ENABLED")
+    print("=" * 60)
+
+else:
+    road_capacity_engine = RoadCapacityEngine(
+        base_capacity=ROAD_BASE_CAPACITY,
+        fc_width=ROAD_FC_WIDTH,
+        fc_direction=ROAD_FC_DIRECTION,
+        fc_side_friction=ROAD_FC_SIDE_FRICTION,
+        fc_city_size=ROAD_FC_CITY_SIZE,
+    )
+
+    road_capacity = (
+        road_capacity_engine.get_capacity()
+    )
 
 latest_volume_smp_per_hour = 0.0
 latest_vc_ratio = 0.0
@@ -812,7 +827,11 @@ while True:
                 f"Counts={traffic_volume_engine.counts}"
             )
 
-    if traffic_volume_engine.is_window_complete():
+    #if traffic_volume_engine.is_window_complete():
+    if (
+        not CAMERA_CALIBRATION_MODE
+        and traffic_volume_engine.is_window_complete()
+    ):    
         # 1. Hitung V
         volume_smp_per_hour = (
             traffic_volume_engine
@@ -1236,13 +1255,25 @@ else:
 # AUDIT DAN INVESTIGASI
 # ==========================================
 
-audit_result = audit_engine.compare(
-    direction_filter=VC_TARGET_DIRECTION
-)
+if not CAMERA_CALIBRATION_MODE:
+    audit_result = audit_engine.compare(
+        direction_filter=VC_TARGET_DIRECTION
+    )
 
-audit_engine.print_report(
-    direction_filter=VC_TARGET_DIRECTION
-)
+    audit_engine.print_report(
+        direction_filter=VC_TARGET_DIRECTION
+    )
+else:
+    print()
+    print("=" * 60)
+    print("AUDIT COUNTER REPORT")
+    print("=" * 60)
+    print(
+        "Dilewati karena kamera masih "
+        "dalam CALIBRATION MODE."
+    )
+    print("=" * 60)
+
 if BIRTH_DEBUG_ENABLED:
     birth_logger.print_legacy_only_analysis(
         legacy_only_ids=audit_result[

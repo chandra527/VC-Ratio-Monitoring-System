@@ -19,6 +19,7 @@ CAMERA_PROFILES = {
     "pattimura": {
 
         "name": "Kamera Jl. Pattimura",
+        "road_width_m": 10.0,
 
         "virtual_gate_start": (
             1550,
@@ -48,18 +49,23 @@ CAMERA_PROFILES = {
     "jendral_urip": {
 
         "name": "Kamera Jl. Jendral Urip",
+        "road_width_m": 9.5,
 
-        # Belum dikalibrasi.
-        # Jangan menggunakan koordinat Pattimura.
-        "virtual_gate_start": None,
-        "virtual_gate_end": None,
+        "virtual_gate_start": (
+            520,
+            610,
+        ),
 
-        # Akan ditentukan setelah arah
-        # lalu lintas dikonfirmasi.
+        "virtual_gate_end": (
+            1570,
+            1010,
+        ),
+
+        # Belum dikunci.
+        # Akan ditentukan dari hasil runtime arah crossing.
         "target_direction": None,
 
-        # Belum menggunakan parameter
-        # kapasitas Pattimura.
+        # Belum dikalibrasi berdasarkan kondisi jalan.
         "road_base_capacity": None,
         "road_fc_width": None,
         "road_fc_direction": None,
