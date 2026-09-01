@@ -75,7 +75,7 @@ CAMERA_PROFILE = get_camera_profile(
 )
 
 CAMERA_CALIBRATION_MODE = (
-    CAMERA_PROFILE["target_direction"] is None
+    not CAMERA_PROFILE["vc_directions"]
     or CAMERA_PROFILE["road_base_capacity"] is None
 )
 
@@ -184,16 +184,39 @@ VIRTUAL_GATE_START_POINT = (
 VIRTUAL_GATE_END_POINT = (
     CAMERA_PROFILE["virtual_gate_end"]
 )
+
+
 # ==========================================
 # VC TRAFFIC DIRECTION
 # ==========================================
 
+# Mapping arah geometris Virtual Gate
+# ke arah fisik kendaraan berdasarkan
+# orientasi pemasangan kamera.
+VC_DIRECTION_MAP = (
+    CAMERA_PROFILE["direction_map"]
+)
+
+# Daftar arah Virtual Gate yang digunakan
+# untuk perhitungan Volume dan V/C Ratio.
+VC_DIRECTIONS = (
+    CAMERA_PROFILE["vc_directions"]
+)
+
 # Arah lalu lintas yang digunakan
 # untuk perhitungan Volume dan V/C Ratio.
-# Fokus saat ini: B -> A di Jl. Pattimura.
+#
+# Untuk Pattimura saat ini masih B_TO_A.
+# Untuk kamera yang sedang kalibrasi
+# dapat bernilai None.
+# Legacy target direction.
+# Dipertahankan sementara untuk audit.
 VC_TARGET_DIRECTION = (
-    CAMERA_PROFILE["target_direction"]
+    CAMERA_PROFILE["vc_directions"]
 )
+
+
+
 # ==========================================
 # GATE DEBUG / INVESTIGATION
 # ==========================================

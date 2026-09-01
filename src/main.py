@@ -47,6 +47,8 @@ from config import (
     ROAD_FC_CITY_SIZE,
     VIRTUAL_GATE_START_POINT,
     VIRTUAL_GATE_END_POINT,
+    VC_DIRECTION_MAP,
+    VC_DIRECTIONS,
     VC_TARGET_DIRECTION,
     ACTIVE_CAMERA_CODE,
     CAMERA_CALIBRATION_MODE,
@@ -117,6 +119,7 @@ is_rtsp = source.lower().startswith(
 )
 
 print(f"Kamera aktif : {ACTIVE_CAMERA_NAME}")
+print(f"VC DIRECTIONS : {VC_DIRECTIONS}")
 
 if is_rtsp:
     print("Sumber video : RTSP Camera")
@@ -763,6 +766,13 @@ while True:
 
         direction = event["direction"]
 
+        physical_direction = (
+            VC_DIRECTION_MAP.get(
+                direction,
+                direction
+            )
+        )
+
         virtual_gate_count[
             direction
         ] += 1
@@ -773,6 +783,12 @@ while True:
             f"{virtual_gate_count[VirtualGate.A_TO_B]} | "
             f"B_TO_A="
             f"{virtual_gate_count[VirtualGate.B_TO_A]}"
+        )
+
+        print(
+            "ARAH KENDARAAN | "
+            f"Gate={direction} | "
+            f"Fisik={physical_direction}"
         )
 
     
@@ -813,7 +829,7 @@ while True:
 
         if (
             event["direction"]
-            == VC_TARGET_DIRECTION
+            in VC_TARGET_DIRECTION
         ):
             traffic_volume_engine.add_vehicle(
                 vehicle_type
@@ -824,6 +840,8 @@ while True:
                 f"ID #{track_id} | "
                 f"Jenis={vehicle_type} | "
                 f"Arah={event['direction']} | "
+                f"Fisik="
+                f"{VC_DIRECTION_MAP.get(event['direction'])} | "
                 f"Counts={traffic_volume_engine.counts}"
             )
 

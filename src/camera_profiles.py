@@ -31,6 +31,15 @@ CAMERA_PROFILES = {
             800,
         ),
 
+        "direction_map": {
+        "A_TO_B": "MENJAUHI_KAMERA",
+        "B_TO_A": "MENDEKATI_KAMERA",
+        },
+
+        "vc_directions": (
+            "B_TO_A",
+        ),
+
         "target_direction": "B_TO_A",
 
         # Konfigurasi kapasitas jalan
@@ -61,16 +70,26 @@ CAMERA_PROFILES = {
             1010,
         ),
 
+        "direction_map": {
+        "A_TO_B": "MENDEKATI_KAMERA",
+        "B_TO_A": "MENJAUHI_KAMERA",
+        },
+
+        "vc_directions": (
+            "A_TO_B",
+            "B_TO_A",
+        ),
+
         # Belum dikunci.
         # Akan ditentukan dari hasil runtime arah crossing.
         "target_direction": None,
 
         # Belum dikalibrasi berdasarkan kondisi jalan.
-        "road_base_capacity": None,
-        "road_fc_width": None,
-        "road_fc_direction": None,
-        "road_fc_side_friction": None,
-        "road_fc_city_size": None,
+        "road_base_capacity": 2800,
+        "road_fc_width": 1.27,
+        "road_fc_direction": 1.0,
+        "road_fc_side_friction": 0.77,
+        "road_fc_city_size": 0.94,
     },
 }
 
