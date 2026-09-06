@@ -5,52 +5,30 @@ from yolo_detector import VEHICLE_CLASSES
 
 
 class VehicleTracker:
+    """
+    Menstabilkan jenis kendaraan per Tracking ID melalui voting kelas.
 
-    def __init__(
-        self,
-        line_y,
-        line_tolerance=35,
-        min_track_frames=3
-    ):
+    Catatan:
+    - Tidak melakukan counting garis legacy.
+    - Counting dan arah kendaraan sepenuhnya ditangani Virtual Gate.
+    """
 
-        # Posisi utama garis hitung
-        self.line_y = line_y
-
-        # Lebar zona toleransi di sekitar garis
-        self.line_tolerance = line_tolerance
-
-        # Minimal jumlah frame agar ID dianggap stabil
+    def __init__(self, min_track_frames=3):
         self.min_track_frames = min_track_frames
 
-        # Jumlah kemunculan setiap tracking ID
+        # Jumlah kemunculan setiap Tracking ID.
         self.track_frames = {}
 
-        # Voting jenis kendaraan setiap ID
+        # Voting jenis kendaraan setiap Tracking ID.
         self.class_votes = {}
 
-        # ID yang pernah terlihat sebelum zona hitung
-        self.seen_above = set()
-
-        # ID yang sudah dihitung
-        self.crossed_ids = set()
-
-        # Rekap kendaraan yang sudah memasuki zona
-        self.vehicle_count = {
-            "motor": 0,
-            "mobil": 0,
-            "bus": 0,
-            "truk": 0,
-            "ambulans": 0
-        }
-
-
     def update(self, result):
-        crossing_events = []
-        zone_top = self.line_y - self.line_tolerance
+        """Memperbarui voting kelas kendaraan untuk setiap Tracking ID."""
+
+        if result.boxes is None:
+            return
 
         for box in result.boxes:
-
-            # Lewati objek yang belum mendapat tracking ID
             if box.id is None:
                 continue
 
@@ -59,88 +37,32 @@ class VehicleTracker:
 
             class_name = CLASS_NAMES[cls]
 
-            # Abaikan objek selain kendaraan
             if class_name not in VEHICLE_CLASSES:
                 continue
 
             detected_key = VEHICLE_CLASSES[class_name]["key"]
 
-            # Hitung jumlah frame kemunculan ID
             self.track_frames[track_id] = (
                 self.track_frames.get(track_id, 0) + 1
             )
 
-            # Siapkan voting kelas untuk ID ini
             if track_id not in self.class_votes:
                 self.class_votes[track_id] = Counter()
 
             self.class_votes[track_id][detected_key] += 1
 
-            # Pilih kelas yang paling sering muncul
-            key = self.class_votes[track_id].most_common(1)[0][0]
-
-            # Ambil koordinat bounding box
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-
-            # Posisi bawah box dianggap sebagai posisi kendaraan di jalan
-            current_y = y2
-
-            # Tandai bahwa kendaraan pernah berada di atas zona
-            if current_y < zone_top:
-                self.seen_above.add(track_id)
-
-            track_is_stable = (
-                self.track_frames[track_id]
-                >= self.min_track_frames
-            )
-
-            entered_counting_zone = (
-                track_id in self.seen_above
-                and current_y >= zone_top
-            )
-
-            not_counted_yet = (
-                track_id not in self.crossed_ids
-            )
-
-            if (
-                track_is_stable
-                and entered_counting_zone
-                and not_counted_yet
-            ):
-                self.vehicle_count[key] += 1
-                self.crossed_ids.add(track_id)
-
-                event = {
-                    "track_id": track_id,
-                    "vehicle_type": key,
-                    "direction": "B_TO_A",
-                    "point": (
-                        (x1 + x2) // 2,
-                        y2,
-                    ),
-                }
-
-                crossing_events.append(event)
-
-                print(
-                    f"TERHITUNG: {key} "
-                    f"ID #{track_id} "
-                    f"Total = {self.vehicle_count[key]}"
-                )
-
-        return crossing_events
-
-    def get_vehicle_data(self):
-
-        return self.vehicle_count.copy()
-    
-
     def get_vehicle_label(self, track_id):
+        """Mengembalikan hasil voting jenis kendaraan untuk Tracking ID."""
 
         if track_id not in self.class_votes:
             return None
 
-        key = self.class_votes[track_id].most_common(1)[0][0]
+        return self.class_votes[track_id].most_common(1)[0][0]
 
-        return key
+    def is_track_stable(self, track_id):
+        """Menandai apakah Tracking ID sudah muncul cukup banyak frame."""
+
+        return (
+            self.track_frames.get(track_id, 0)
+            >= self.min_track_frames
+        )

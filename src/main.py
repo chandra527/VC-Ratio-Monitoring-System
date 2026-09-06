@@ -1,31 +1,22 @@
 import cv2
 import time
 import os
-#import numpy as np
+
 from layout import *
 from draw import *
 from processing import *
 from utils import *
 from utils import show_banner
-from yolo_detector import detect, count_vehicle
 from yolo_detector import draw_detection
 from tracker import track
 from vehicle_tracker import VehicleTracker
-
-from line_counter import (
-    get_counting_line_y,
-    draw_counting_line,
-    draw_speed_lines,
-)
-
-
+from line_counter import draw_speed_lines
 from csv_logger import CSVLogger
 from database_logger import DatabaseLogger
 from speed_estimator import SpeedEstimator
 from config import (
     VIDEO_PATH,
     MODEL_PATH,
-    ACTIVE_CAMERA,
     ACTIVE_CAMERA_NAME,
     DEBUG_TRACK_ENABLED,
     DEBUG_TRACK_IDS,
@@ -49,8 +40,6 @@ from config import (
     VIRTUAL_GATE_END_POINT,
     VC_DIRECTION_MAP,
     VC_DIRECTIONS,
-    VC_TARGET_DIRECTION,
-    ACTIVE_CAMERA_CODE,
     CAMERA_CALIBRATION_MODE,
     SPEED_LINE_A_START,
     SPEED_LINE_A_END,
@@ -58,21 +47,13 @@ from config import (
     SPEED_LINE_B_END,
     SPEED_DISTANCE_METERS,
 )
-
 from trajectory_engine import TrajectoryEngine
 from yolo_detector import CLASS_NAMES, VEHICLE_CLASSES
 from virtual_gate import VirtualGate
-from audit_engine import AuditEngine
 from birth_track_logger import BirthTrackLogger
 from birth_track_utils import record_birth_tracks
-from track_timeline_debugger import (
-    TrackTimelineDebugger,
-)
-
-from track_timeline_utils import (
-    record_track_timelines,
-)
-
+from track_timeline_debugger import TrackTimelineDebugger
+from track_timeline_utils import record_track_timelines
 from traffic_volume_engine import TrafficVolumeEngine
 from road_capacity_engine import RoadCapacityEngine
 from vc_ratio_engine import VCRatioEngine
@@ -80,45 +61,34 @@ from vc_ratio_engine import VCRatioEngine
 
 selected_device = get_selected_device()
 
-def open_video_source(
-    source,
-    is_rtsp,
-):
-    """
-    Membuka file video atau stream RTSP.
 
-    Fungsi ini hanya membuat dan mengembalikan
-    objek cv2.VideoCapture.
-    """
+def open_video_source(source, is_rtsp):
+    """Membuka file video atau stream RTSP."""
 
     if is_rtsp:
         video = cv2.VideoCapture(
             source,
             cv2.CAP_FFMPEG,
         )
-
         video.set(
             cv2.CAP_PROP_BUFFERSIZE,
             1,
         )
-
     else:
-        video = cv2.VideoCapture(
-            source
-        )
+        video = cv2.VideoCapture(source)
 
-    return video    
+    return video
+
 
 benchmark_device = (
     "CUDA"
     if selected_device != "cpu"
     else "CPU"
 )
+
 show_banner(selected_device)
 
-#video = cv2.VideoCapture(VIDEO_PATH)
 source = str(VIDEO_PATH)
-
 is_rtsp = source.lower().startswith(
     ("rtsp://", "rtsps://")
 )
@@ -128,21 +98,13 @@ print(f"VC DIRECTIONS : {VC_DIRECTIONS}")
 
 if is_rtsp:
     print("Sumber video : RTSP Camera")
-
-    video = cv2.VideoCapture(
-        source,
-        cv2.CAP_FFMPEG
-    )
-
-    video.set(
-        cv2.CAP_PROP_BUFFERSIZE,
-        1
-    )
-
 else:
     print(f"Sumber video : {source}")
 
-    video = cv2.VideoCapture(source)
+video = open_video_source(
+    source,
+    is_rtsp,
+)
 
 if not video.isOpened():
     raise RuntimeError(
@@ -151,50 +113,48 @@ if not video.isOpened():
     )
 
 frame_ke = 0
-#fps = video.get(cv2.CAP_PROP_FPS)
-fps = video.get(
-    cv2.CAP_PROP_FPS
-)
+fps = video.get(cv2.CAP_PROP_FPS)
 
 if fps is None or fps <= 0 or fps > 120:
     fps = 25.0
-
     print(
         "FPS sumber tidak valid. "
         "Menggunakan fallback 25 FPS."
     )
-
 else:
-    print(
-        f"Source FPS   : {fps:.2f}"
-    )
+    print(f"Source FPS   : {fps:.2f}")
 
-#panel_Vehicle_Count
+
+# ============================================================
+# DATA / ENGINE
+# ============================================================
+
 vehicle_data = create_vehicle_data()
 
+# VehicleTracker sekarang hanya melakukan voting kelas kendaraan.
+tracker = VehicleTracker()
 
-#tracker = VehicleTracker()
-
-tracker = None
-speed_estimator = None
+speed_estimator = SpeedEstimator(
+    line_a_start=SPEED_LINE_A_START,
+    line_a_end=SPEED_LINE_A_END,
+    line_b_start=SPEED_LINE_B_START,
+    line_b_end=SPEED_LINE_B_END,
+    fps=fps,
+    distance_meters=SPEED_DISTANCE_METERS,
+)
 
 trajectory_engine = TrajectoryEngine(
     max_history=30
 )
 
-# ==========================================
-# DEBUG TRACK
-# ==========================================
-
-#inisialisasi
-
-audit_engine = AuditEngine()
-
 birth_logger = BirthTrackLogger()
-
 timeline_debugger = TrackTimelineDebugger()
 
-virtual_gate = None
+virtual_gate = VirtualGate(
+    start_point=VIRTUAL_GATE_START_POINT,
+    end_point=VIRTUAL_GATE_END_POINT,
+    tolerance=0,
+)
 
 observed_gate_sides = {}
 gate_crossing_states = {}
@@ -204,31 +164,47 @@ virtual_gate_count = {
     VirtualGate.B_TO_A: 0,
 }
 
+print()
+print("=" * 60)
+print("COUNTING CONFIGURATION")
+print("=" * 60)
+print("Counting source     : VIRTUAL GATE")
+print(
+    f"Virtual Gate start  : "
+    f"{virtual_gate.start_point}"
+)
+print(
+    f"Virtual Gate end    : "
+    f"{virtual_gate.end_point}"
+)
+print(
+    f"Virtual tolerance   : "
+    f"{virtual_gate.tolerance}"
+)
+print("Legacy counter      : DISABLED")
+print("=" * 60)
+
+
 WINDOW_NAME = "VC Ratio Monitoring"
 
 cv2.namedWindow(
     WINDOW_NAME,
-    cv2.WINDOW_AUTOSIZE
+    cv2.WINDOW_AUTOSIZE,
 )
-
 
 cv2.moveWindow(
     WINDOW_NAME,
     10,
-    10
+    10,
 )
 
 csv_logger = CSVLogger()
-
 database_logger = DatabaseLogger()
 
 benchmark_start_time = time.perf_counter()
-
 performance_last_time = time.perf_counter()
 performance_last_frame = 0
-
 benchmark_completed = False
-
 
 consecutive_read_failures = 0
 MAX_READ_FAILURES = 5
@@ -252,7 +228,6 @@ if CAMERA_CALIBRATION_MODE:
     print("Traffic logging  : DISABLED")
     print("Virtual Gate     : ENABLED")
     print("=" * 60)
-
 else:
     road_capacity_engine = RoadCapacityEngine(
         base_capacity=ROAD_BASE_CAPACITY,
@@ -270,10 +245,13 @@ latest_volume_smp_per_hour = 0.0
 latest_vc_ratio = 0.0
 
 latest_status, latest_status_color = (
-    get_traffic_status(
-        latest_vc_ratio
-    )
+    get_traffic_status(latest_vc_ratio)
 )
+
+
+# ============================================================
+# HELPER
+# ============================================================
 
 def update_trajectories(
     result,
@@ -281,20 +259,18 @@ def update_trajectories(
 ):
     """
     Merekam bottom-center setiap kendaraan
-    berdasarkan tracking ID ByteTrack.
+    berdasarkan Tracking ID ByteTrack.
     """
 
     if result.boxes is None:
         return
 
     for box in result.boxes:
-
         if box.id is None:
             continue
 
         track_id = int(box.id[0])
         class_id = int(box.cls[0])
-
         class_name = CLASS_NAMES[class_id]
 
         if class_name not in VEHICLE_CLASSES:
@@ -329,14 +305,9 @@ def observe_virtual_gate(
     """
     Mendeteksi crossing Virtual Gate.
 
-    Satu tracking ID dapat menghasilkan
-    lebih dari satu crossing yang valid.
-
-    Pengaman:
-    - hysteresis terhadap jitter dekat garis;
-    - cooldown antar crossing;
-    - re-arm setelah kendaraan cukup jauh
-      dari gate.
+    Satu Tracking ID dapat menghasilkan lebih dari satu
+    crossing yang valid dengan hysteresis, cooldown,
+    dan mekanisme re-arm.
     """
 
     events = []
@@ -347,12 +318,10 @@ def observe_virtual_gate(
     )
 
     for track_id, points in trajectories.items():
-
         if not points:
             continue
 
         current_point = points[-1]
-
         previous_point = None
 
         if len(points) >= 2:
@@ -364,35 +333,16 @@ def observe_virtual_gate(
             )
         )
 
-        # ==========================================
-        # HYSTERESIS SIDE
-        # ==========================================
-
-        if (
-            signed_distance
-            > hysteresis_distance
-        ):
-            current_side = (
-                VirtualGate.SIDE_A
-            )
-
-        elif (
-            signed_distance
-            < -hysteresis_distance
-        ):
-            current_side = (
-                VirtualGate.SIDE_B
-            )
-
+        # Hysteresis side.
+        if signed_distance > hysteresis_distance:
+            current_side = VirtualGate.SIDE_A
+        elif signed_distance < -hysteresis_distance:
+            current_side = VirtualGate.SIDE_B
         else:
-            current_side = (
-                VirtualGate.ON_GATE
-            )
+            current_side = VirtualGate.ON_GATE
 
-        previous_side = (
-            observed_gate_sides.get(
-                track_id
-            )
+        previous_side = observed_gate_sides.get(
+            track_id
         )
 
         state = gate_crossing_states.setdefault(
@@ -404,12 +354,8 @@ def observe_virtual_gate(
             },
         )
 
-        # ==========================================
-        # RE-ARM
-        # ==========================================
-
+        # Re-arm setelah kendaraan cukup jauh dari gate.
         if not state["armed"]:
-
             moved_far_enough = (
                 abs(signed_distance)
                 >= rearm_distance
@@ -441,34 +387,23 @@ def observe_virtual_gate(
             ):
                 state["armed"] = True
 
-        # ==========================================
-        # DETECT DIRECTION
-        # ==========================================
-
+        # Deteksi arah berdasarkan perpindahan sisi.
         direction = None
 
         if (
-            previous_side
-            == VirtualGate.SIDE_A
-            and current_side
-            == VirtualGate.SIDE_B
+            previous_side == VirtualGate.SIDE_A
+            and current_side == VirtualGate.SIDE_B
         ):
             direction = VirtualGate.B_TO_A
 
         elif (
-            previous_side
-            == VirtualGate.SIDE_B
-            and current_side
-            == VirtualGate.SIDE_A
+            previous_side == VirtualGate.SIDE_B
+            and current_side == VirtualGate.SIDE_A
         ):
             direction = VirtualGate.A_TO_B
 
-        # ON_GATE tidak mengganti
-        # last valid side.
-        if (
-            current_side
-            != VirtualGate.ON_GATE
-        ):
+        # ON_GATE tidak mengganti last valid side.
+        if current_side != VirtualGate.ON_GATE:
             observed_gate_sides[
                 track_id
             ] = current_side
@@ -476,10 +411,7 @@ def observe_virtual_gate(
         if direction is None:
             continue
 
-        # ==========================================
-        # SEGMENT BOUNDARY CHECK
-        # ==========================================
-
+        # Pastikan trajectory benar-benar memotong segmen gate.
         if not virtual_gate.intersects_segment(
             previous_point,
             current_point,
@@ -502,10 +434,6 @@ def observe_virtual_gate(
         ):
             continue
 
-        # ==========================================
-        # ACCEPT CROSSING
-        # ==========================================
-
         if (
             MULTI_CROSSING_DEBUG_ENABLED
             and state["last_crossing_frame"] is not None
@@ -523,11 +451,7 @@ def observe_virtual_gate(
         state["last_crossing_frame"] = (
             frame_number
         )
-
-        state["last_direction"] = (
-            direction
-        )
-
+        state["last_direction"] = direction
         state["armed"] = False
 
         event = {
@@ -539,7 +463,7 @@ def observe_virtual_gate(
         events.append(event)
 
         print(
-            f"VIRTUAL GATE EVENT | "
+            "VIRTUAL GATE EVENT | "
             f"ID #{track_id} | "
             f"Arah = {direction} | "
             f"Point = {current_point}"
@@ -547,11 +471,10 @@ def observe_virtual_gate(
 
     return events
 
+
 def get_active_track_ids(result):
-    """
-    Mengambil tracking ID yang terlihat
-    pada frame saat ini.
-    """
+    """Mengambil Tracking ID yang terlihat pada frame saat ini."""
+
     active_track_ids = set()
 
     if result.boxes is None:
@@ -567,14 +490,15 @@ def get_active_track_ids(result):
 
     return active_track_ids
 
-#################
+
+# ============================================================
+# MAIN LOOP
+# ============================================================
 
 while True:
-
     ret, frame = video.read()
 
     if not ret or frame is None:
-
         consecutive_read_failures += 1
 
         print(
@@ -588,7 +512,6 @@ while True:
             break
 
         if consecutive_read_failures >= MAX_READ_FAILURES:
-
             print()
             print("=" * 60)
             print("RTSP TERPUTUS")
@@ -596,114 +519,49 @@ while True:
             print("=" * 60)
 
             video.release()
-
             time.sleep(3)
 
             video = open_video_source(
                 source,
-                is_rtsp
+                is_rtsp,
             )
 
             if video.isOpened():
                 reconnect_count += 1
 
                 print(
-                    f"Reconnect berhasil."
+                    "Reconnect berhasil. "
                     f"Total reconnect: {reconnect_count}"
                 )
 
                 consecutive_read_failures = 0
-
                 continue
 
-            print(
-                "Reconnect gagal."
-            )
-
+            print("Reconnect gagal.")
             consecutive_read_failures = 0
-
             time.sleep(5)
             continue
 
-        # Gangguan singkat, belum perlu reconnect
         time.sleep(0.2)
         continue
 
-    # Frame berhasil dibaca
     consecutive_read_failures = 0
-
     frame_ke += 1
-
-    if tracker is None:
-
-        # Garis legacy untuk VehicleTracker / counting lama
-        line_b_y = get_counting_line_y(frame)
-
-        tracker = VehicleTracker(
-            line_y=line_b_y
-        )
-
-        # Counter lama mulai menghitung ketika kendaraan
-        # mencapai batas atas counting zone.
-        legacy_trigger_y = (
-            tracker.line_y
-            - tracker.line_tolerance
-        )
-
-        # Virtual Gate disamakan dengan posisi trigger legacy
-        # agar perbandingan audit adil.
-        virtual_gate = VirtualGate(
-            start_point=VIRTUAL_GATE_START_POINT,
-            end_point=VIRTUAL_GATE_END_POINT,
-            tolerance=0,
-        )
-
-        print()
-        print("=" * 60)
-        print("COUNTING CONFIGURATION")
-        print("=" * 60)
-        print(
-            f"Legacy line Y       : "
-            f"{tracker.line_y}"
-        )
-        print(
-            f"Legacy tolerance    : "
-            f"{tracker.line_tolerance}"
-        )
-        print(
-            f"Legacy trigger Y    : "
-            f"{legacy_trigger_y}"
-        )
-        print(
-            f"Virtual Gate Y      : "
-            f"{virtual_gate.start_point[1]}"
-        )
-        print(
-            f"Virtual tolerance   : "
-            f"{virtual_gate.tolerance}"
-        )
-        print("=" * 60)
-
-        speed_estimator = SpeedEstimator(
-            line_a_start=SPEED_LINE_A_START,
-            line_a_end=SPEED_LINE_A_END,
-            line_b_start=SPEED_LINE_B_START,
-            line_b_end=SPEED_LINE_B_END,
-            fps=fps,
-            distance_meters=SPEED_DISTANCE_METERS,
-        )
 
     result = track(frame)
 
+    # Voting kelas selalu diperbarui sebelum event gate/speed diproses.
+    tracker.update(result)
+
     active_track_ids = get_active_track_ids(
         result
-        )
+    )
 
     update_trajectories(
         result,
         trajectory_engine,
-        )
-    
+    )
+
     if BIRTH_DEBUG_ENABLED:
         record_birth_tracks(
             result=result,
@@ -723,20 +581,14 @@ while True:
             ),
         )
 
-        
-    # ==========================================
-    # LOG DEBUG TRACK ID
-    # ==========================================
-
     if DEBUG_TRACK_ENABLED:
         for debug_track_id in DEBUG_TRACK_IDS:
-
             if debug_track_id not in active_track_ids:
                 continue
 
             trajectory = (
                 trajectory_engine.get_trajectory(
-                debug_track_id
+                    debug_track_id
                 )
             )
 
@@ -747,12 +599,11 @@ while True:
             )
 
             print(
-                f"DEBUG TRACK AKTIF | "
+                "DEBUG TRACK AKTIF | "
                 f"Frame={frame_ke} | "
                 f"ID={debug_track_id} | "
                 f"Point={current_point} | "
-                f"Trajectory Length="
-                f"{len(trajectory)}"
+                f"Trajectory Length={len(trajectory)}"
             )
 
     gate_events = observe_virtual_gate(
@@ -767,19 +618,21 @@ while True:
     )
 
     for event in gate_events:
-
+        track_id = event["track_id"]
         direction = event["direction"]
 
         physical_direction = (
             VC_DIRECTION_MAP.get(
                 direction,
-                direction
+                direction,
             )
         )
 
-        virtual_gate_count[
-            direction
-        ] += 1
+        vehicle_type = tracker.get_vehicle_label(
+            track_id
+        )
+
+        virtual_gate_count[direction] += 1
 
         print(
             "VIRTUAL GATE COUNT | "
@@ -795,46 +648,20 @@ while True:
             f"Fisik={physical_direction}"
         )
 
-    
-    # VehicleTracker melakukan voting lebih dahulu
-    #tracker.update(result)
+        if vehicle_type is None:
+            print(
+                "VIRTUAL GATE WARNING | "
+                f"ID #{track_id} belum memiliki "
+                "hasil voting kelas."
+            )
+            continue
 
-    
-    # VehicleTracker melakukan voting lebih dahulu
-    legacy_events = tracker.update(result)
+        # Hanya arah yang dikonfigurasi sebagai VC_DIRECTIONS
+        # yang masuk rekap kendaraan dan perhitungan V/C.
+        if direction in VC_DIRECTIONS:
+            if vehicle_type in vehicle_data:
+                vehicle_data[vehicle_type] += 1
 
-    for event in legacy_events:
-
-        audit_engine.record_legacy(
-            track_id=event["track_id"],
-            vehicle_type=event["vehicle_type"],
-            direction=event["direction"],
-            frame_number=frame_ke,
-            point=event["point"],
-        )
-
-    
-    
-    for event in gate_events:
-
-        track_id = event["track_id"]
-
-        vehicle_type = tracker.get_vehicle_label(
-            track_id
-        )
-
-        audit_engine.record_virtual_gate(
-            track_id=track_id,
-            vehicle_type=vehicle_type,
-            direction=event["direction"],
-            frame_number=frame_ke,
-            point=event["point"],
-        )
-
-        if (
-            event["direction"]
-            in VC_TARGET_DIRECTION
-        ):
             traffic_volume_engine.add_vehicle(
                 vehicle_type
             )
@@ -843,34 +670,37 @@ while True:
                 "VC VOLUME INPUT | "
                 f"ID #{track_id} | "
                 f"Jenis={vehicle_type} | "
-                f"Arah={event['direction']} | "
-                f"Fisik="
-                f"{VC_DIRECTION_MAP.get(event['direction'])} | "
+                f"Arah={direction} | "
+                f"Fisik={physical_direction} | "
                 f"Counts={traffic_volume_engine.counts}"
             )
 
-    #if traffic_volume_engine.is_window_complete():
+    # SpeedEstimator memakai hasil voting kelas yang sama.
+    speed_estimator.update(
+        result,
+        frame_ke,
+        tracker,
+    )
+
     if (
         not CAMERA_CALIBRATION_MODE
         and traffic_volume_engine.is_window_complete()
-    ):    
-        # 1. Hitung V
+    ):
         volume_smp_per_hour = (
             traffic_volume_engine
             .get_volume_per_hour()
         )
-        # 2. Hitung V/C
+
         vc_ratio = vc_ratio_engine.calculate(
             volume=volume_smp_per_hour,
             capacity=road_capacity,
         )
-        # 3. Simpan sebagai nilai terbaru
+
         latest_volume_smp_per_hour = (
             volume_smp_per_hour
         )
-
         latest_vc_ratio = vc_ratio
-        # 4. Tentukan status berdasarkan V/C baru
+
         latest_status, latest_status_color = (
             get_traffic_status(
                 latest_vc_ratio
@@ -888,37 +718,30 @@ while True:
         print("=" * 60)
         print("VC VOLUME REPORT - 1 MINUTE")
         print("=" * 60)
-
         print(
             f"Counts     : "
             f"{traffic_volume_engine.counts}"
         )
-
         print(
             f"Total SMP  : "
             f"{traffic_volume_engine.get_total_smp():.2f}"
         )
-
         print(
             f"Volume (V)    : "
             f"{volume_smp_per_hour:.2f} smp/jam"
         )
-
         print(
             f"Capacity(C) : "
             f"{road_capacity:.2f} smp/jam"
         )
-
         print(
             f"V/C Ratio   : "
             f"{vc_ratio:.2f}"
         )
-
         print(
             f"Status      : "
             f"{latest_status}"
         )
-
         print("=" * 60)
 
         csv_logger.save(
@@ -932,16 +755,6 @@ while True:
         )
 
         traffic_volume_engine.reset()
-
-    # SpeedEstimator mengambil hasil voting tersebut
-    speed_estimator.update(
-    result,
-    frame_ke,
-    tracker
-    )
-
-
-    vehicle_data = tracker.get_vehicle_data()
 
     if (
         PERFORMANCE_AUDIT_ENABLED
@@ -1006,11 +819,17 @@ while True:
             f"Trajectory tersimpan : "
             f"{stored_trajectory_count}"
         )
+
         if BIRTH_DEBUG_ENABLED:
             print(
                 f"Birth track cache    : "
                 f"{birth_logger.count()}"
             )
+
+        print(
+            f"Class voting cache   : "
+            f"{len(tracker.track_frames)}"
+        )
         print(
             f"Total titik history  : "
             f"{total_trajectory_points}"
@@ -1020,16 +839,8 @@ while True:
             f"{len(observed_gate_sides)}"
         )
         print(
-            f"Gate crossed cache   : "
+            f"Gate state cache     : "
             f"{len(gate_crossing_states)}"
-        )
-        print(
-            f"Legacy track cache   : "
-            f"{len(tracker.track_frames)}"
-        )
-        print(
-            f"Legacy crossed cache : "
-            f"{len(tracker.crossed_ids)}"
         )
         print("=" * 60)
 
@@ -1040,44 +851,42 @@ while True:
         vehicle_data
     )
 
-    current_time = time.time()
-
     frame = draw_detection(
         frame,
         result,
         speed_estimator,
-        tracker
+        tracker,
     )
 
     frame = draw_trajectories(
-    frame,
-    trajectory_engine,
-    active_track_ids,
-    debug_track_ids=(
-        DEBUG_TRACK_IDS
-        if DEBUG_TRACK_ENABLED
-        else set()
+        frame,
+        trajectory_engine,
+        active_track_ids,
+        debug_track_ids=(
+            DEBUG_TRACK_IDS
+            if DEBUG_TRACK_ENABLED
+            else set()
         ),
-    show_only_debug=(
-        SHOW_ONLY_DEBUG_TRACKS
-        if DEBUG_TRACK_ENABLED
-        else False
+        show_only_debug=(
+            SHOW_ONLY_DEBUG_TRACKS
+            if DEBUG_TRACK_ENABLED
+            else False
         ),
-    keep_debug_visible=(
-        KEEP_DEBUG_TRAJECTORY_VISIBLE
+        keep_debug_visible=(
+            KEEP_DEBUG_TRAJECTORY_VISIBLE
         ),
     )
 
     frame = draw_virtual_gate(
-    frame,
-    virtual_gate,
+        frame,
+        virtual_gate,
     )
 
     frame = draw_virtual_gate_summary(
         frame,
         virtual_gate_count,
     )
-    
+
     frame = draw_speed_lines(
         frame,
         SPEED_LINE_A_START,
@@ -1086,78 +895,54 @@ while True:
         SPEED_LINE_B_END,
     )
 
-    # Legacy line tetap aktif untuk audit,
-    # tetapi tidak ditampilkan di dashboard.
-    #frame = draw_counting_line(
-    #    frame,
-    #   tracker.line_y
-    #)
-
     frame_kecil = resize_frame(frame)
-
-
     tinggi, lebar = frame.shape[:2]
 
-    frame_kecil = resize_frame(frame)
-
     dashboard = create_dashboard()
-
-    # Tempel satu video utama
     dashboard = draw_video(
-    dashboard,
-    frame_kecil
+        dashboard,
+        frame_kecil,
     )
-
-    # Bingkai video utama
     dashboard = draw_video_frame(dashboard)
-
-    # Garis layout
     dashboard = draw_lines(dashboard)
-
-    # Header
     dashboard = draw_header(dashboard)
 
-    # ==========================
-    # Informasi Sistem  
-    # ==========================
     dashboard = draw_system_information(
-    dashboard,
-    frame_ke,
-    fps,
-    lebar,
-    tinggi
+        dashboard,
+        frame_ke,
+        fps,
+        lebar,
+        tinggi,
     )
 
-    
-    #dashboard = draw_vehicle_panel(
-    #dashboard,
-    #vehicle_data
-    #)
-
-            
     dashboard = draw_compact_summary(
-    dashboard,
-    vehicle_data,
-    latest_volume_smp_per_hour,
-    road_capacity,
-    latest_vc_ratio,
-    latest_status,
-    latest_status_color,
+        dashboard,
+        vehicle_data,
+        latest_volume_smp_per_hour,
+        road_capacity,
+        latest_vc_ratio,
+        latest_status,
+        latest_status_color,
     )
-     
-    #footer
+
     dashboard = draw_footer(dashboard)
 
-     
-    # Menampilkan dashboard
-    cv2.imshow(WINDOW_NAME, dashboard)
+    cv2.imshow(
+        WINDOW_NAME,
+        dashboard,
+    )
 
-    # Keluar jika tombol q ditekan
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
+
+# ============================================================
+# BENCHMARK / SHUTDOWN
+# ============================================================
+
 benchmark_processing_seconds = (
-    time.perf_counter() - benchmark_start_time
+    time.perf_counter()
+    - benchmark_start_time
 )
 
 benchmark_average_fps = (
@@ -1172,25 +957,7 @@ benchmark_status = (
     else "STOPPED_BY_USER"
 )
 
-
 if frame_ke > 0:
-
-    benchmark_processing_seconds = (
-        time.perf_counter() - benchmark_start_time
-    )
-
-    benchmark_average_fps = (
-        frame_ke / benchmark_processing_seconds
-        if benchmark_processing_seconds > 0
-        else 0.0
-    )
-
-    benchmark_status = (
-        "COMPLETED"
-        if benchmark_completed
-        else "STOPPED_BY_USER"
-    )
-
     benchmark_vc_data = {
         "volume": latest_volume_smp_per_hour,
         "capacity": road_capacity,
@@ -1199,11 +966,15 @@ if frame_ke > 0:
     }
 
     database_logger.save_benchmark(
-        model_name=os.path.basename(str(MODEL_PATH)),
+        model_name=os.path.basename(
+            str(MODEL_PATH)
+        ),
         video_name=(
             ACTIVE_CAMERA_NAME
             if is_rtsp
-            else os.path.basename(str(VIDEO_PATH))
+            else os.path.basename(
+                str(VIDEO_PATH)
+            )
         ),
         device=benchmark_device,
         run_status=benchmark_status,
@@ -1216,6 +987,14 @@ if frame_ke > 0:
         notes=(
             "Pengujian aplikasi VC Ratio pada server Dishub. "
             f"Total RTSP reconnect: {reconnect_count}"
+        ),
+    )
+
+    source_name = (
+        ACTIVE_CAMERA_NAME
+        if is_rtsp
+        else os.path.basename(
+            str(VIDEO_PATH)
         )
     )
 
@@ -1223,14 +1002,9 @@ if frame_ke > 0:
     print("=" * 60)
     print("HASIL BENCHMARK")
     print("=" * 60)
-    print(f"Model          : {os.path.basename(str(MODEL_PATH))}")
-    #print(f"Video          : {os.path.basename(str(VIDEO_PATH))}")
-    source_name = (
-    ACTIVE_CAMERA_NAME
-    if is_rtsp
-    else os.path.basename(
-        str(VIDEO_PATH)
-    )
+    print(
+        f"Model          : "
+        f"{os.path.basename(str(MODEL_PATH))}"
     )
     print(f"Sumber         : {source_name}")
     print(f"Device         : {benchmark_device}")
@@ -1240,7 +1014,10 @@ if frame_ke > 0:
         f"Waktu proses   : "
         f"{benchmark_processing_seconds:.2f} detik"
     )
-    print(f"FPS rata-rata  : {benchmark_average_fps:.2f}")
+    print(
+        f"FPS rata-rata  : "
+        f"{benchmark_average_fps:.2f}"
+    )
     print(f"RTSP Reconnect : {reconnect_count}")
     print(f"Motor          : {vehicle_data['motor']}")
     print(f"Mobil          : {vehicle_data['mobil']}")
@@ -1252,65 +1029,27 @@ if frame_ke > 0:
         f"Volume (V)     : "
         f"{latest_volume_smp_per_hour:.2f} smp/jam"
     )
-
     print(
         f"Capacity (C)   : "
         f"{road_capacity:.2f} smp/jam"
     )
-
     print(
         f"VC Ratio       : "
         f"{latest_vc_ratio:.4f}"
     )
-
     print(
         f"Status Jalan   : "
         f"{latest_status}"
     )
     print("=" * 60)
-
 else:
-
     print(
         "BENCHMARK TIDAK DISIMPAN: "
         "tidak ada frame yang berhasil diproses."
     )
 
-# ==========================================
-# AUDIT DAN INVESTIGASI
-# ==========================================
-
-if not CAMERA_CALIBRATION_MODE:
-    audit_result = audit_engine.compare(
-        direction_filter="B_TO_A"
-    )
-
-    audit_engine.print_report(
-        direction_filter="B_TO_A"
-    )
-else:
-    print()
-    print("=" * 60)
-    print("AUDIT COUNTER REPORT")
-    print("=" * 60)
-    print(
-        "Dilewati karena kamera masih "
-        "dalam CALIBRATION MODE."
-    )
-    print("=" * 60)
-
-if BIRTH_DEBUG_ENABLED:
-    birth_logger.print_legacy_only_analysis(
-        legacy_only_ids=audit_result[
-            "legacy_only_ids"
-        ],
-        legacy_events=audit_result[
-            "legacy_events"
-        ],
-    )
 
 if TIMELINE_DEBUG_ENABLED:
-
     for debug_track_id in (
         TIMELINE_DEBUG_TRACK_IDS
     ):
@@ -1318,7 +1057,23 @@ if TIMELINE_DEBUG_ENABLED:
             track_id=debug_track_id
         )
 
-audit_engine.print_virtual_direction_summary()
+print()
+print("=" * 60)
+print("VIRTUAL GATE DIRECTION SUMMARY")
+print("=" * 60)
+print(
+    f"A_TO_B : "
+    f"{virtual_gate_count[VirtualGate.A_TO_B]}"
+)
+print(
+    f"B_TO_A : "
+    f"{virtual_gate_count[VirtualGate.B_TO_A]}"
+)
+print(
+    f"Total  : "
+    f"{sum(virtual_gate_count.values())}"
+)
+print("=" * 60)
 
 video.release()
 cv2.destroyAllWindows()
