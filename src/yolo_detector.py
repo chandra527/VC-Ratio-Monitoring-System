@@ -198,14 +198,24 @@ def draw_detection(
                     track_id
                 )
 
+                direction = speed_estimator.get_direction(
+                    track_id
+                )
+
                 # Speed baru ditampilkan setelah
-                # kendaraan selesai melewati Line B
+                # kendaraan selesai melewati kedua Speed Line
                 if speed is not None:
 
                     text = (
                         f"{label} #{track_id} | "
                         f"{speed:.1f} km/jam"
                     )
+
+                    if direction is not None:
+
+                        text += (
+                            f" | {direction}"
+                        )
 
         draw_corner_box(
             frame,

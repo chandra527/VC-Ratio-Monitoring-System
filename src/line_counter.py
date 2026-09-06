@@ -62,32 +62,67 @@ def draw_counting_line(frame, line_y):
 
     return frame
 
-def get_speed_line_a_y(line_b_y):
+def draw_speed_lines(
+    frame,
+    line_a_start,
+    line_a_end,
+    line_b_start,
+    line_b_end,
+):
 
-    # Line A berada 100 piksel di atas Line B
-    return line_b_y - 100
-
-
-def draw_speed_line_a(frame, line_a_y):
-
-    lebar = frame.shape[1]
+    # ======================================
+    # SPEED LINE A
+    # ======================================
 
     cv2.line(
         frame,
-        (0, line_a_y),
-        (lebar, line_a_y),
+        line_a_start,
+        line_a_end,
         SPEED_LINE_COLOR,
-        SPEED_LINE_THICKNESS
+        SPEED_LINE_THICKNESS,
+        cv2.LINE_AA,
     )
 
     cv2.putText(
         frame,
         "SPEED LINE A",
-        (20, line_a_y - 8),
+        (
+            line_a_start[0] + 10,
+            line_a_start[1] - 10,
+        ),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.5,
         SPEED_LINE_COLOR,
-        2
+        2,
+        cv2.LINE_AA,
+    )
+
+
+    # ======================================
+    # SPEED LINE B
+    # ======================================
+
+    cv2.line(
+        frame,
+        line_b_start,
+        line_b_end,
+        (0, 255, 0),
+        SPEED_LINE_THICKNESS,
+        cv2.LINE_AA,
+    )
+
+    cv2.putText(
+        frame,
+        "SPEED LINE B",
+        (
+            line_b_start[0] + 10,
+            line_b_start[1] - 10,
+        ),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (0, 255, 0),
+        2,
+        cv2.LINE_AA,
     )
 
     return frame

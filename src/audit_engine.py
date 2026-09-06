@@ -110,29 +110,44 @@ class AuditEngine:
         Membandingkan event counter lama dan Virtual Gate
         pada arah yang sama.
 
-        Default:
-            B_TO_A
+        direction_filter dapat berupa:
 
-        Karena counter lama saat ini hanya menghitung
-        kendaraan arah B_TO_A.
+            "B_TO_A"
+
+        atau:
+
+            ("A_TO_B", "B_TO_A")
         """
+
         if direction_filter is None:
             raise ValueError(
                 "direction_filter wajib ditentukan."
+            )
+
+        # Mendukung satu arah maupun beberapa arah.
+        if isinstance(direction_filter, str):
+            allowed_directions = (
+                direction_filter,
+            )
+        else:
+            allowed_directions = tuple(
+                direction_filter
             )
 
         legacy_events_filtered = {
             track_id: event
             for track_id, event
             in self.legacy_events.items()
-            if event["direction"] == direction_filter
+            if event["direction"]
+            in allowed_directions
         }
 
         virtual_events_filtered = {
             track_id: event
             for track_id, event
             in self.virtual_gate_events.items()
-            if event["direction"] == direction_filter
+            if event["direction"]
+            in allowed_directions
         }
 
         legacy_ids = set(

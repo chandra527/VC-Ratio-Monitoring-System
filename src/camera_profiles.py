@@ -31,6 +31,30 @@ CAMERA_PROFILES = {
             800,
         ),
 
+        # Konfigurasi speed line
+        "speed_line_a_start": (
+            0,
+            0,
+        ),
+
+        "speed_line_a_end": (
+            0,
+            0,
+        ),
+
+        "speed_line_b_start": (
+            0,
+            0,
+        ),
+
+        "speed_line_b_end": (
+            0,
+            0,
+        ),
+
+        "speed_distance_meters": 10,
+
+        
         "direction_map": {
         "A_TO_B": "MENJAUHI_KAMERA",
         "B_TO_A": "MENDEKATI_KAMERA",
@@ -61,18 +85,42 @@ CAMERA_PROFILES = {
         "road_width_m": 9.5,
 
         "virtual_gate_start": (
-            520,
-            610,
+            1670,
+            850,
         ),
 
         "virtual_gate_end": (
-            1570,
-            1010,
+            775,
+            555,
         ),
 
+        # Line A = sisi dekat kamera
+        "speed_line_a_start": (
+            1459,
+            1165,
+        ),
+
+        "speed_line_a_end": (
+            360,
+            689,
+        ),
+
+        # Line B = sisi jauh dari kamera
+        "speed_line_b_start": (
+            1833,
+            604,
+        ),
+
+        "speed_line_b_end": (
+            1091,
+            450,
+        ),
+
+        "speed_distance_meters": 10,
+
         "direction_map": {
-        "A_TO_B": "MENDEKATI_KAMERA",
-        "B_TO_A": "MENJAUHI_KAMERA",
+        "A_TO_B": "MENJAUHI_KAMERA",
+        "B_TO_A": "MENDEKATI_KAMERA",
         },
 
         "vc_directions": (

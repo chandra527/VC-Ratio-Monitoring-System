@@ -185,6 +185,30 @@ VIRTUAL_GATE_END_POINT = (
     CAMERA_PROFILE["virtual_gate_end"]
 )
 
+# ==========================================
+# SPEED CALIBRATION
+# ==========================================
+
+SPEED_LINE_A_START = (
+    CAMERA_PROFILE["speed_line_a_start"]
+)
+
+SPEED_LINE_A_END = (
+    CAMERA_PROFILE["speed_line_a_end"]
+)
+
+SPEED_LINE_B_START = (
+    CAMERA_PROFILE["speed_line_b_start"]
+)
+
+SPEED_LINE_B_END = (
+    CAMERA_PROFILE["speed_line_b_end"]
+)
+
+SPEED_DISTANCE_METERS = (
+    CAMERA_PROFILE["speed_distance_meters"]
+)
+
 
 # ==========================================
 # VC TRAFFIC DIRECTION
@@ -207,7 +231,7 @@ VC_DIRECTIONS = (
 # untuk perhitungan Volume dan V/C Ratio.
 #
 # Untuk Pattimura saat ini masih B_TO_A.
-# Untuk kamera yang sedang kalibrasi
+# Untuk kamera yang sedang kalibrqasi
 # dapat bernilai None.
 # Legacy target direction.
 # Dipertahankan sementara untuk audit.

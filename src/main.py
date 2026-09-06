@@ -11,11 +11,11 @@ from yolo_detector import detect, count_vehicle
 from yolo_detector import draw_detection
 from tracker import track
 from vehicle_tracker import VehicleTracker
+
 from line_counter import (
     get_counting_line_y,
     draw_counting_line,
-    get_speed_line_a_y,
-    draw_speed_line_a
+    draw_speed_lines,
 )
 
 
@@ -52,6 +52,11 @@ from config import (
     VC_TARGET_DIRECTION,
     ACTIVE_CAMERA_CODE,
     CAMERA_CALIBRATION_MODE,
+    SPEED_LINE_A_START,
+    SPEED_LINE_A_END,
+    SPEED_LINE_B_START,
+    SPEED_LINE_B_END,
+    SPEED_DISTANCE_METERS,
 )
 
 from trajectory_engine import TrajectoryEngine
@@ -631,11 +636,8 @@ while True:
 
     if tracker is None:
 
-        # Garis akhir speed sekaligus garis utama counting
+        # Garis legacy untuk VehicleTracker / counting lama
         line_b_y = get_counting_line_y(frame)
-
-        # Garis awal speed
-        line_a_y = get_speed_line_a_y(line_b_y)
 
         tracker = VehicleTracker(
             line_y=line_b_y
@@ -683,10 +685,12 @@ while True:
         print("=" * 60)
 
         speed_estimator = SpeedEstimator(
-            line_a_y=line_a_y,
-            line_b_y=line_b_y,
+            line_a_start=SPEED_LINE_A_START,
+            line_a_end=SPEED_LINE_A_END,
+            line_b_start=SPEED_LINE_B_START,
+            line_b_end=SPEED_LINE_B_END,
             fps=fps,
-            distance_meters=10,
+            distance_meters=SPEED_DISTANCE_METERS,
         )
 
     result = track(frame)
@@ -1070,13 +1074,16 @@ while True:
     )
 
     frame = draw_virtual_gate_summary(
-    frame,
-    virtual_gate_count,
+        frame,
+        virtual_gate_count,
     )
     
-    frame = draw_speed_line_a(
+    frame = draw_speed_lines(
         frame,
-        speed_estimator.line_a_y
+        SPEED_LINE_A_START,
+        SPEED_LINE_A_END,
+        SPEED_LINE_B_START,
+        SPEED_LINE_B_END,
     )
 
     # Legacy line tetap aktif untuk audit,
@@ -1275,11 +1282,11 @@ else:
 
 if not CAMERA_CALIBRATION_MODE:
     audit_result = audit_engine.compare(
-        direction_filter=VC_TARGET_DIRECTION
+        direction_filter="B_TO_A"
     )
 
     audit_engine.print_report(
-        direction_filter=VC_TARGET_DIRECTION
+        direction_filter="B_TO_A"
     )
 else:
     print()
