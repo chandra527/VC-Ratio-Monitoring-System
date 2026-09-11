@@ -201,6 +201,9 @@ cv2.moveWindow(
 csv_logger = CSVLogger()
 database_logger = DatabaseLogger()
 
+# Tracking ID yang hasil speed-nya sudah disimpan ke MySQL.
+saved_speed_track_ids = set()
+
 benchmark_start_time = time.perf_counter()
 performance_last_time = time.perf_counter()
 performance_last_frame = 0
@@ -681,6 +684,51 @@ while True:
         frame_ke,
         tracker,
     )
+
+    # ============================================================
+    # SIMPAN HASIL SPEED PER KENDARAAN
+    # ============================================================
+
+    for track_id, speed_result in (
+        speed_estimator.get_all_speeds().items()
+    ):
+
+        # Jangan simpan Tracking ID yang sama berulang kali.
+        if track_id in saved_speed_track_ids:
+            continue
+
+        speed_kmh = speed_result.get("speed_kmh")
+        direction = speed_result.get("direction")
+
+        if speed_kmh is None or direction is None:
+            continue
+
+        vehicle_type = tracker.get_vehicle_label(
+            track_id
+        )
+
+        if vehicle_type is None:
+            continue
+
+        physical_direction = (
+            VC_DIRECTION_MAP.get(
+                direction,
+                direction,
+            )
+        )
+
+        database_logger.save_vehicle_speed(
+            track_id=track_id,
+            vehicle_type=vehicle_type,
+            direction=direction,
+            physical_direction=physical_direction,
+            speed_kmh=speed_kmh,
+            frame_number=frame_ke,
+        )
+
+        saved_speed_track_ids.add(
+            track_id
+        )
 
     if (
         not CAMERA_CALIBRATION_MODE

@@ -4,6 +4,7 @@ from datetime import datetime
 import mysql.connector
 from dotenv import load_dotenv
 from mysql.connector import Error
+
 from config import ACTIVE_CAMERA_CODE
 
 
@@ -43,14 +44,21 @@ class DatabaseLogger:
     def _validate_config(self):
 
         required_config = {
-            "database": self.database_config["database"],
-            "user": self.database_config["user"],
-            "password": self.database_config["password"]
+            "database": self.database_config[
+                "database"
+            ],
+            "user": self.database_config[
+                "user"
+            ],
+            "password": self.database_config[
+                "password"
+            ]
         }
 
         missing_config = [
             key
-            for key, value in required_config.items()
+            for key, value
+            in required_config.items()
             if not value
         ]
 
@@ -69,6 +77,37 @@ class DatabaseLogger:
         )
 
 
+    def _get_camera_id(
+        self,
+        cursor
+    ):
+
+        cursor.execute(
+            """
+            SELECT id
+            FROM cameras
+            WHERE code = %s
+            AND is_active = 1
+            LIMIT 1
+            """,
+            (
+                ACTIVE_CAMERA_CODE,
+            )
+        )
+
+        camera_row = cursor.fetchone()
+
+        if camera_row is None:
+
+            raise RuntimeError(
+                "Kamera aktif tidak ditemukan "
+                "di database: "
+                f"{ACTIVE_CAMERA_CODE}"
+            )
+
+        return camera_row[0]
+
+
     def _create_table(self):
 
         connection = None
@@ -78,6 +117,10 @@ class DatabaseLogger:
 
             connection = self._connect()
             cursor = connection.cursor()
+
+            # ==========================================
+            # TRAFFIC LOGS
+            # ==========================================
 
             cursor.execute(
                 """
@@ -96,6 +139,10 @@ class DatabaseLogger:
                 )
                 """
             )
+
+            # ==========================================
+            # BENCHMARK RESULTS
+            # ==========================================
 
             cursor.execute(
                 """
@@ -123,17 +170,59 @@ class DatabaseLogger:
                 """
             )
 
+            # ==========================================
+            # VEHICLE SPEED LOGS
+            # ==========================================
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS vehicle_logs (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+                    camera_id BIGINT NOT NULL,
+
+                    track_id BIGINT NOT NULL,
+
+                    vehicle_type VARCHAR(30) NOT NULL,
+
+                    direction VARCHAR(20) NOT NULL,
+
+                    physical_direction VARCHAR(50) NOT NULL,
+
+                    speed_kmh DECIMAL(10, 2) NOT NULL,
+
+                    frame_number BIGINT NOT NULL,
+
+                    detected_at DATETIME NOT NULL,
+
+                    INDEX idx_vehicle_camera_time (
+                        camera_id,
+                        detected_at
+                    ),
+
+                    INDEX idx_vehicle_track (
+                        track_id
+                    ),
+
+                    INDEX idx_vehicle_direction (
+                        direction
+                    )
+                )
+                """
+            )
+
             connection.commit()
 
             print(
-                "MYSQL: tabel traffic_logs dan "
-                "benchmark_results siap."
+                "MYSQL: tabel traffic_logs, "
+                "benchmark_results dan "
+                "vehicle_logs siap."
             )
 
         except Error as error:
 
             print(
-                f"MYSQL: gagal membuat tabel: "
+                "MYSQL: gagal membuat tabel: "
                 f"{error}"
             )
 
@@ -167,30 +256,11 @@ class DatabaseLogger:
             connection = self._connect()
             cursor = connection.cursor()
 
-            # Cari ID kamera berdasarkan code kamera aktif
-            cursor.execute(
-                """
-                SELECT id
-                FROM cameras
-                WHERE code = %s
-                AND is_active = 1
-                LIMIT 1
-                """,
-                (ACTIVE_CAMERA_CODE,)
+            camera_id = self._get_camera_id(
+                cursor
             )
 
-            camera_row = cursor.fetchone()
-
-            if camera_row is None:
-                raise RuntimeError(
-                    "Kamera aktif tidak ditemukan "
-                    f"di database: {ACTIVE_CAMERA_CODE}"
-                )
-
-            camera_id = camera_row[0]
-
             cursor.execute(
-
                 """
                 INSERT INTO traffic_logs (
                     camera_id,
@@ -207,9 +277,9 @@ class DatabaseLogger:
                     status
                 )
                 VALUES (
-                    %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s,
-                    %s, %s
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s
                 )
                 """,
                 (
@@ -221,24 +291,26 @@ class DatabaseLogger:
                     int(vehicle_data["truk"]),
                     int(vehicle_data["ambulans"]),
                     int(vehicle_data["total"]),
-
                     float(vc_data["volume"]),
                     float(vc_data["capacity"]),
                     float(vc_data["vc_ratio"]),
                     str(vc_data["status"])
                 )
             )
-                
+
             connection.commit()
 
             print(
                 "MYSQL TERSIMPAN: "
-                f"{timestamp:%Y-%m-%d %H:%M:%S}"
+                f"{timestamp:%Y-%m-%d %H:%M:%S} "
                 f"| Kamera={ACTIVE_CAMERA_CODE} "
                 f"| camera_id={camera_id}"
             )
 
-        except Error as error:
+        except (
+            Error,
+            RuntimeError
+        ) as error:
 
             if (
                 connection is not None
@@ -247,9 +319,114 @@ class DatabaseLogger:
                 connection.rollback()
 
             print(
-                f"MYSQL: gagal menyimpan data: "
+                "MYSQL: gagal menyimpan data: "
                 f"{error}"
             )
+
+        finally:
+
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                connection is not None
+                and connection.is_connected()
+            ):
+                connection.close()
+
+
+    def save_vehicle_speed(
+        self,
+        track_id,
+        vehicle_type,
+        direction,
+        physical_direction,
+        speed_kmh,
+        frame_number,
+    ):
+
+        detected_at = datetime.now()
+
+        connection = None
+        cursor = None
+
+        try:
+
+            connection = self._connect()
+            cursor = connection.cursor()
+
+            camera_id = self._get_camera_id(
+                cursor
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO vehicle_logs (
+                    camera_id,
+                    track_id,
+                    vehicle_type,
+                    direction,
+                    physical_direction,
+                    speed_kmh,
+                    frame_number,
+                    detected_at
+                )
+                VALUES (
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s
+                )
+                """,
+                (
+                    camera_id,
+                    int(track_id),
+                    str(vehicle_type),
+                    str(direction),
+                    str(physical_direction),
+                    float(speed_kmh),
+                    int(frame_number),
+                    detected_at
+                )
+            )
+
+            connection.commit()
+
+            print(
+                "MYSQL SPEED TERSIMPAN | "
+                f"Kamera={ACTIVE_CAMERA_CODE} | "
+                f"ID #{track_id} | "
+                f"Jenis={vehicle_type} | "
+                f"Arah={direction} | "
+                f"Fisik={physical_direction} | "
+                f"Speed={speed_kmh:.2f} km/jam"
+            )
+
+        except (
+            Error,
+            RuntimeError
+        ) as error:
+
+            if (
+                connection is not None
+                and connection.is_connected()
+            ):
+                connection.rollback()
+
+            print(
+                "MYSQL: gagal menyimpan "
+                "speed kendaraan: "
+                f"{error}"
+            )
+
+        finally:
+
+            if cursor is not None:
+                cursor.close()
+
+            if (
+                connection is not None
+                and connection.is_connected()
+            ):
+                connection.close()
 
 
     def save_benchmark(
@@ -265,7 +442,7 @@ class DatabaseLogger:
         vehicle_data,
         vc_data,
         notes,
-        ):
+    ):
 
         tested_at = datetime.now()
 
@@ -350,7 +527,6 @@ class DatabaseLogger:
                 f"{error}"
             )
 
-
         finally:
 
             if cursor is not None:
@@ -360,5 +536,4 @@ class DatabaseLogger:
                 connection is not None
                 and connection.is_connected()
             ):
-
                 connection.close()

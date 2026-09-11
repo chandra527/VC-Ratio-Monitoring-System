@@ -20,39 +20,39 @@ CAMERA_PROFILES = {
 
         "name": "Kamera Jl. Pattimura",
         "road_width_m": 10.0,
-
+     
         "virtual_gate_start": (
-            1550,
-            570,
+            1748,
+            638,
         ),
 
         "virtual_gate_end": (
-            450,
-            800,
+            796,
+            943,
         ),
 
         # Konfigurasi speed line
         "speed_line_a_start": (
-            0,
-            0,
+            945,
+            1244,
         ),
 
         "speed_line_a_end": (
-            0,
-            0,
+            2168,
+            758,
         ),
 
         "speed_line_b_start": (
-            0,
-            0,
+            696,
+            786,
         ),
 
         "speed_line_b_end": (
-            0,
-            0,
+            1461,
+            569,
         ),
 
-        "speed_distance_meters": 10,
+        "speed_distance_meters": 8,
 
         
         "direction_map": {
