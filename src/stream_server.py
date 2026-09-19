@@ -6,31 +6,44 @@ from flask import Flask, Response
 app = Flask(__name__)
 
 _latest_frame = None
-_frame_lock = threading.Lock()
+_frame_condition = threading.Condition()
+_frame_version = 0
 
 
 def update_stream_frame(jpeg_bytes):
     """
-    Menyimpan frame JPEG terbaru untuk ditampilkan
-    melalui web stream.
+    Menyimpan frame JPEG terbaru dan memberi tahu
+    client stream bahwa frame baru tersedia.
     """
     global _latest_frame
+    global _frame_version
 
-    with _frame_lock:
+    with _frame_condition:
         _latest_frame = jpeg_bytes
+        _frame_version += 1
+
+        _frame_condition.notify_all()
 
 
 def generate_stream():
     """
-    Mengirim frame terbaru sebagai MJPEG stream.
+    Mengirim frame hanya ketika frame baru tersedia.
     """
+    last_version = -1
+
     while True:
 
-        with _frame_lock:
-            frame = _latest_frame
+        with _frame_condition:
 
-        if frame is None:
-            continue
+            _frame_condition.wait_for(
+                lambda: (
+                    _latest_frame is not None
+                    and _frame_version != last_version
+                )
+            )
+
+            frame = _latest_frame
+            last_version = _frame_version
 
         yield (
             b"--frame\r\n"

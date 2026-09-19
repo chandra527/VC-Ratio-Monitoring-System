@@ -81,6 +81,13 @@ stream_thread.start()
 
 print("Web stream server : http://127.0.0.1:5001/stream")
 
+# Web stream tidak perlu mengikuti seluruh processing FPS.
+STREAM_FPS = 10.0
+STREAM_FRAME_INTERVAL = 1.0 / STREAM_FPS
+last_stream_time = 0.0
+
+print(f"Web stream FPS    : {STREAM_FPS:.0f}")
+
 
 def open_video_source(source, is_rtsp):
     """Membuka file video atau stream RTSP."""
@@ -995,17 +1002,25 @@ while True:
 
     dashboard = draw_footer(dashboard)
 
-    # Kirim dashboard final ke web stream
-    encode_ok, jpeg_buffer = cv2.imencode(
-        ".jpg",
-        dashboard,
-        [cv2.IMWRITE_JPEG_QUALITY, 75],
-    )
+    # Kirim dashboard final ke web stream dengan FPS terbatas.
+    current_stream_time = time.perf_counter()
 
-    if encode_ok:
-        update_stream_frame(
-            jpeg_buffer.tobytes()
+    if (
+        current_stream_time - last_stream_time
+        >= STREAM_FRAME_INTERVAL
+    ):
+        encode_ok, jpeg_buffer = cv2.imencode(
+            ".jpg",
+            dashboard,
+            [cv2.IMWRITE_JPEG_QUALITY, 75],
         )
+
+        if encode_ok:
+            update_stream_frame(
+                jpeg_buffer.tobytes()
+            )
+
+        last_stream_time = current_stream_time
 
     cv2.imshow(
         WINDOW_NAME,
