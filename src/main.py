@@ -57,9 +57,29 @@ from track_timeline_utils import record_track_timelines
 from traffic_volume_engine import TrafficVolumeEngine
 from road_capacity_engine import RoadCapacityEngine
 from vc_ratio_engine import VCRatioEngine
+import threading
+
+from stream_server import run_stream_server, update_stream_frame
 
 
 selected_device = get_selected_device()
+
+# ============================================================
+# WEB STREAM SERVER
+# ============================================================
+
+stream_thread = threading.Thread(
+    target=run_stream_server,
+    kwargs={
+        "host": "127.0.0.1",
+        "port": 5001,
+    },
+    daemon=True,
+)
+
+stream_thread.start()
+
+print("Web stream server : http://127.0.0.1:5001/stream")
 
 
 def open_video_source(source, is_rtsp):
@@ -974,6 +994,18 @@ while True:
     )
 
     dashboard = draw_footer(dashboard)
+
+    # Kirim dashboard final ke web stream
+    encode_ok, jpeg_buffer = cv2.imencode(
+        ".jpg",
+        dashboard,
+        [cv2.IMWRITE_JPEG_QUALITY, 75],
+    )
+
+    if encode_ok:
+        update_stream_frame(
+            jpeg_buffer.tobytes()
+        )
 
     cv2.imshow(
         WINDOW_NAME,
