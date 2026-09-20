@@ -4,10 +4,18 @@ from flask import Flask, Response
 
 
 app = Flask(__name__)
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = (
+        "http://127.0.0.1:8000"
+    )
+    return response
 
 _latest_frame = None
 _frame_condition = threading.Condition()
 _frame_version = 0
+_live_data = {}
+_live_data_lock = threading.Lock()
 
 
 def update_stream_frame(jpeg_bytes):
@@ -24,6 +32,14 @@ def update_stream_frame(jpeg_bytes):
 
         _frame_condition.notify_all()
 
+def update_live_data(data):
+    """
+    Menyimpan data monitoring terbaru untuk API web.
+    """
+    global _live_data
+
+    with _live_data_lock:
+        _live_data = data.copy()
 
 def generate_stream():
     """
@@ -62,6 +78,13 @@ def stream():
             "boundary=frame"
         ),
     )
+
+@app.get("/api/live")
+def live_data():
+    with _live_data_lock:
+        data = _live_data.copy()
+
+    return data
 
 
 def run_stream_server(

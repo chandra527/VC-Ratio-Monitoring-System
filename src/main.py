@@ -59,8 +59,11 @@ from road_capacity_engine import RoadCapacityEngine
 from vc_ratio_engine import VCRatioEngine
 import threading
 
-from stream_server import run_stream_server, update_stream_frame
-
+from stream_server import (
+    run_stream_server,
+    update_stream_frame,
+    update_live_data,
+)
 
 selected_device = get_selected_device()
 
@@ -72,14 +75,14 @@ stream_thread = threading.Thread(
     target=run_stream_server,
     kwargs={
         "host": "127.0.0.1",
-        "port": 5001,
+        "port": 5002,
     },
     daemon=True,
 )
 
 stream_thread.start()
 
-print("Web stream server : http://127.0.0.1:5001/stream")
+print("Web stream server : http://127.0.0.1:5002/stream")
 
 # Web stream tidak perlu mengikuti seluruh processing FPS.
 STREAM_FPS = 10.0
@@ -926,6 +929,39 @@ while True:
         vehicle_data
     )
 
+    all_speed_results = (
+        speed_estimator.get_all_speeds()
+    )
+
+    valid_speeds = [
+        speed_result["speed_kmh"]
+        for speed_result
+        in all_speed_results.values()
+        if speed_result.get("speed_kmh") is not None
+    ]
+
+    live_average_speed = (
+        sum(valid_speeds) / len(valid_speeds)
+        if valid_speeds
+        else 0.0
+    )
+
+
+    update_live_data({
+        "camera": ACTIVE_CAMERA_NAME,
+        "motor": vehicle_data["motor"],
+        "mobil": vehicle_data["mobil"],
+        "truk": vehicle_data["truk"],
+        "bus": vehicle_data["bus"],
+        "ambulans": vehicle_data["ambulans"],
+        "total": vehicle_data["total"],
+        "average_speed": live_average_speed,
+        "volume": latest_volume_smp_per_hour,
+        "capacity": road_capacity,
+        "vc_ratio": latest_vc_ratio,
+        "status": latest_status,
+    })
+
     frame = draw_detection(
         frame,
         result,
@@ -1011,7 +1047,7 @@ while True:
     ):
         encode_ok, jpeg_buffer = cv2.imencode(
             ".jpg",
-            dashboard,
+            frame,
             [cv2.IMWRITE_JPEG_QUALITY, 75],
         )
 
