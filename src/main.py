@@ -46,6 +46,7 @@ from config import (
     SPEED_LINE_B_START,
     SPEED_LINE_B_END,
     SPEED_DISTANCE_METERS,
+    STREAM_PORT,
 )
 from trajectory_engine import TrajectoryEngine
 from yolo_detector import CLASS_NAMES, VEHICLE_CLASSES
@@ -75,14 +76,17 @@ stream_thread = threading.Thread(
     target=run_stream_server,
     kwargs={
         "host": "127.0.0.1",
-        "port": 5002,
+        "port": STREAM_PORT,
     },
     daemon=True,
 )
 
 stream_thread.start()
 
-print("Web stream server : http://127.0.0.1:5002/stream")
+print(
+    f"Web stream server : "
+    f"http://127.0.0.1:{STREAM_PORT}/stream"
+)
 
 # Web stream tidak perlu mengikuti seluruh processing FPS.
 STREAM_FPS = 10.0

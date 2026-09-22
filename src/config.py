@@ -70,6 +70,13 @@ ACTIVE_CAMERA_CODE = os.getenv(
     "pattimura"
 )
 
+STREAM_PORT = int(
+    os.getenv(
+        "STREAM_PORT",
+        "5002"
+    )
+)
+
 CAMERA_PROFILE = get_camera_profile(
     ACTIVE_CAMERA_CODE
 )
