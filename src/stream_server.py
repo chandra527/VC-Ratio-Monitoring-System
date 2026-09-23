@@ -1,14 +1,21 @@
 import threading
 
-from flask import Flask, Response
+from flask import Flask, Response, request
 
 
 app = Flask(__name__)
 @app.after_request
 def add_cors_headers(response):
-    response.headers["Access-Control-Allow-Origin"] = (
-        "http://127.0.0.1:8000"
-    )
+    allowed_origins = {
+        "http://127.0.0.1:8000",
+        "https://dishubptk-vc-ratio.ellokale.id",
+    }
+
+    origin = request.headers.get("Origin")
+
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+
     return response
 
 _latest_frame = None
