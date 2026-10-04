@@ -1,4 +1,5 @@
 import threading
+from datetime import datetime
 
 from flask import Flask, Response, request
 
@@ -23,6 +24,8 @@ _frame_condition = threading.Condition()
 _frame_version = 0
 _live_data = {}
 _live_data_lock = threading.Lock()
+
+_session_started_at = datetime.now().astimezone()
 
 
 def update_stream_frame(jpeg_bytes):
@@ -90,6 +93,8 @@ def stream():
 def live_data():
     with _live_data_lock:
         data = _live_data.copy()
+
+    data["session_started_at"] = _session_started_at.isoformat()
 
     return data
 

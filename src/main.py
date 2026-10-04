@@ -767,7 +767,8 @@ while True:
     if (
         not CAMERA_CALIBRATION_MODE
         and traffic_volume_engine.is_window_complete()
-    ):
+        ):
+
         volume_smp_per_hour = (
             traffic_volume_engine
             .get_volume_per_hour()
@@ -794,6 +795,17 @@ while True:
             "capacity": road_capacity,
             "vc_ratio": latest_vc_ratio,
             "status": latest_status,
+        }
+
+        interval_vehicle_data = {
+            "motor": traffic_volume_engine.counts["motor"],
+            "mobil": traffic_volume_engine.counts["mobil"],
+            "bus": traffic_volume_engine.counts["bus"],
+            "truk": traffic_volume_engine.counts["truk"],
+            "ambulans": 0,
+            "total": sum(
+                traffic_volume_engine.counts.values()
+            ),
         }
 
         print()
@@ -832,10 +844,10 @@ while True:
         )
 
         database_logger.save(
-            vehicle_data,
+            interval_vehicle_data,
             latest_vc_data,
         )
-
+        
         traffic_volume_engine.reset()
 
     if (
