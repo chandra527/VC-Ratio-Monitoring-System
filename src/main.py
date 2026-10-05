@@ -1,6 +1,7 @@
 import cv2
 import time
 import os
+import signal
 
 from layout import *
 from draw import *
@@ -67,6 +68,46 @@ from stream_server import (
 )
 
 selected_device = get_selected_device()
+
+# ============================================================
+# HEADLESS MODE
+# ============================================================
+
+# True:
+# - Detection / tracking / counting / speed / database tetap jalan.
+# - API realtime /api/live tetap jalan.
+# - Rendering video, JPEG stream, dan OpenCV preview dimatikan.
+#
+# False:
+# - Tampilan dan web video stream berjalan seperti biasa.
+HEADLESS_MODE = True
+
+print(
+    f"Headless mode     : "
+    f"{'ON' if HEADLESS_MODE else 'OFF'}"
+)
+
+stop_requested = False
+
+
+def handle_stop_signal(signum, frame):
+    global stop_requested
+
+    print()
+    print("=" * 60)
+    print("STOP REQUESTED")
+    print("Menyelesaikan proses dan menyimpan benchmark...")
+    print("=" * 60)
+
+    stop_requested = True
+
+
+signal.signal(
+    signal.SIGINT,
+    handle_stop_signal,
+)
+
+
 
 # ============================================================
 # WEB STREAM SERVER
@@ -221,16 +262,17 @@ print("=" * 60)
 
 WINDOW_NAME = "VC Ratio Monitoring"
 
-cv2.namedWindow(
-    WINDOW_NAME,
-    cv2.WINDOW_AUTOSIZE,
-)
+if not HEADLESS_MODE:
+    cv2.namedWindow(
+        WINDOW_NAME,
+        cv2.WINDOW_AUTOSIZE,
+    )
 
-cv2.moveWindow(
-    WINDOW_NAME,
-    10,
-    10,
-)
+    cv2.moveWindow(
+        WINDOW_NAME,
+        10,
+        10,
+    )
 
 csv_logger = CSVLogger()
 database_logger = DatabaseLogger()
@@ -533,6 +575,9 @@ def get_active_track_ids(result):
 # ============================================================
 
 while True:
+    if stop_requested:
+        break
+    
     ret, frame = video.read()
 
     if not ret or frame is None:
@@ -985,103 +1030,107 @@ while True:
         tracker,
     )
 
-    frame = draw_trajectories(
-        frame,
-        trajectory_engine,
-        active_track_ids,
-        debug_track_ids=(
-            DEBUG_TRACK_IDS
-            if DEBUG_TRACK_ENABLED
-            else set()
-        ),
-        show_only_debug=(
-            SHOW_ONLY_DEBUG_TRACKS
-            if DEBUG_TRACK_ENABLED
-            else False
-        ),
-        keep_debug_visible=(
-            KEEP_DEBUG_TRAJECTORY_VISIBLE
-        ),
-    )
+    if not HEADLESS_MODE:
 
-    frame = draw_virtual_gate(
-        frame,
-        virtual_gate,
-    )
-
-    frame = draw_virtual_gate_summary(
-        frame,
-        virtual_gate_count,
-    )
-
-    frame = draw_speed_lines(
-        frame,
-        SPEED_LINE_A_START,
-        SPEED_LINE_A_END,
-        SPEED_LINE_B_START,
-        SPEED_LINE_B_END,
-    )
-
-    frame_kecil = resize_frame(frame)
-    tinggi, lebar = frame.shape[:2]
-
-    dashboard = create_dashboard()
-    dashboard = draw_video(
-        dashboard,
-        frame_kecil,
-    )
-    dashboard = draw_video_frame(dashboard)
-    dashboard = draw_lines(dashboard)
-    dashboard = draw_header(dashboard)
-
-    dashboard = draw_system_information(
-        dashboard,
-        frame_ke,
-        fps,
-        lebar,
-        tinggi,
-    )
-
-    dashboard = draw_compact_summary(
-        dashboard,
-        vehicle_data,
-        latest_volume_smp_per_hour,
-        road_capacity,
-        latest_vc_ratio,
-        latest_status,
-        latest_status_color,
-    )
-
-    dashboard = draw_footer(dashboard)
-
-    # Kirim dashboard final ke web stream dengan FPS terbatas.
-    current_stream_time = time.perf_counter()
-
-    if (
-        current_stream_time - last_stream_time
-        >= STREAM_FRAME_INTERVAL
-    ):
-        encode_ok, jpeg_buffer = cv2.imencode(
-            ".jpg",
+        frame = draw_trajectories(
             frame,
-            [cv2.IMWRITE_JPEG_QUALITY, 75],
+            trajectory_engine,
+            active_track_ids,
+            debug_track_ids=(
+                DEBUG_TRACK_IDS
+                if DEBUG_TRACK_ENABLED
+                else set()
+            ),
+            show_only_debug=(
+                SHOW_ONLY_DEBUG_TRACKS
+                if DEBUG_TRACK_ENABLED
+                else False
+            ),
+            keep_debug_visible=(
+                KEEP_DEBUG_TRAJECTORY_VISIBLE
+            ),
         )
 
-        if encode_ok:
-            update_stream_frame(
-                jpeg_buffer.tobytes()
+        frame = draw_virtual_gate(
+            frame,
+            virtual_gate,
+        )
+
+        frame = draw_virtual_gate_summary(
+            frame,
+            virtual_gate_count,
+        )
+
+        frame = draw_speed_lines(
+            frame,
+            SPEED_LINE_A_START,
+            SPEED_LINE_A_END,
+            SPEED_LINE_B_START,
+            SPEED_LINE_B_END,
+        )
+
+        frame_kecil = resize_frame(frame)
+        tinggi, lebar = frame.shape[:2]
+
+        dashboard = create_dashboard()
+        dashboard = draw_video(
+            dashboard,
+            frame_kecil,
+        )
+        dashboard = draw_video_frame(dashboard)
+        dashboard = draw_lines(dashboard)
+        dashboard = draw_header(dashboard)
+
+        dashboard = draw_system_information(
+            dashboard,
+            frame_ke,
+            fps,
+            lebar,
+            tinggi,
+        )
+
+        dashboard = draw_compact_summary(
+            dashboard,
+            vehicle_data,
+            latest_volume_smp_per_hour,
+            road_capacity,
+            latest_vc_ratio,
+            latest_status,
+            latest_status_color,
+        )
+
+        dashboard = draw_footer(dashboard)
+
+        # Kirim dashboard final ke web stream dengan FPS terbatas.
+        current_stream_time = time.perf_counter()
+
+        if (
+            current_stream_time - last_stream_time
+            >= STREAM_FRAME_INTERVAL
+        ):
+            encode_ok, jpeg_buffer = cv2.imencode(
+                ".jpg",
+                frame,
+                [cv2.IMWRITE_JPEG_QUALITY, 75],
             )
 
-        last_stream_time = current_stream_time
+            if encode_ok:
+                update_stream_frame(
+                    jpeg_buffer.tobytes()
+                )
 
-    cv2.imshow(
-        WINDOW_NAME,
-        dashboard,
-    )
+            last_stream_time = current_stream_time
 
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
+        cv2.imshow(
+            WINDOW_NAME,
+            dashboard,
+        )
 
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+    
+            
 
 # ============================================================
 # BENCHMARK / SHUTDOWN
