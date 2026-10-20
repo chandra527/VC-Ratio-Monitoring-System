@@ -567,3 +567,14 @@ class SpeedEstimator:
         return (
             self.vehicle_speeds.copy()
         )
+
+
+    def remove_track(self, track_id):
+        """
+        Menghapus cache speed untuk satu Tracking ID
+        yang sudah dinyatakan tidak aktif.
+        """
+
+        self.previous_point.pop(track_id, None)
+        self.first_crossing.pop(track_id, None)
+        self.vehicle_speeds.pop(track_id, None)

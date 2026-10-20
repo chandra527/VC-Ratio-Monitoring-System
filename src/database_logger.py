@@ -400,6 +400,8 @@ class DatabaseLogger:
                 f"Speed={speed_kmh:.2f} km/jam"
             )
 
+            return True
+
         except (
             Error,
             RuntimeError
@@ -416,6 +418,8 @@ class DatabaseLogger:
                 "speed kendaraan: "
                 f"{error}"
             )
+
+            return False
 
         finally:
 

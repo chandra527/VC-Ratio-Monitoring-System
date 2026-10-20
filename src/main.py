@@ -234,6 +234,19 @@ virtual_gate = VirtualGate(
 observed_gate_sides = {}
 gate_crossing_states = {}
 
+# ==================================================
+# TRACK CACHE LIFECYCLE
+# ==================================================
+
+# Frame terakhir setiap Tracking ID terlihat.
+track_last_seen = {}
+
+# Toleransi ID tidak aktif sebelum dibersihkan.
+TRACK_CACHE_TTL_FRAMES = 750
+
+# Pemeriksaan cleanup setiap 300 frame.
+TRACK_CACHE_CLEANUP_INTERVAL = 300
+
 virtual_gate_count = {
     VirtualGate.A_TO_B: 0,
     VirtualGate.B_TO_A: 0,
@@ -277,8 +290,15 @@ if not HEADLESS_MODE:
 csv_logger = CSVLogger()
 database_logger = DatabaseLogger()
 
-# Tracking ID yang hasil speed-nya sudah disimpan ke MySQL.
-saved_speed_track_ids = set()
+# Tracking ID yang sudah dicoba disimpan ke MySQL.
+attempted_speed_track_ids = set()
+
+# Tracking ID yang sudah masuk statistik speed realtime.
+counted_speed_track_ids = set()
+
+# Akumulasi speed untuk rata-rata realtime.
+total_speed_kmh = 0.0
+total_speed_count = 0
 
 benchmark_start_time = time.perf_counter()
 performance_last_time = time.perf_counter()
@@ -380,6 +400,7 @@ def observe_virtual_gate(
     cooldown_frames,
     rearm_distance,
     hysteresis_distance,
+    active_track_ids,
 ):
     """
     Mendeteksi crossing Virtual Gate.
@@ -391,12 +412,11 @@ def observe_virtual_gate(
 
     events = []
 
-    trajectories = (
-        trajectory_engine
-        .get_all_trajectories()
-    )
+    for track_id in active_track_ids:
+        points = trajectory_engine.get_trajectory(
+        track_id
+        )
 
-    for track_id, points in trajectories.items():
         if not points:
             continue
 
@@ -550,6 +570,47 @@ def observe_virtual_gate(
 
     return events
 
+def cleanup_inactive_tracks(
+    frame_number,
+    track_last_seen,
+    active_track_ids,
+    trajectory_engine,
+    tracker,
+    speed_estimator,
+    observed_gate_sides,
+    gate_crossing_states,
+    attempted_speed_track_ids,
+    counted_speed_track_ids,
+    ttl_frames,
+):
+    """
+    Membersihkan cache Tracking ID yang sudah
+    tidak aktif melewati batas TTL.
+    """
+
+    expired_ids = [
+        track_id
+        for track_id, last_seen in track_last_seen.items()
+        if (
+            track_id not in active_track_ids
+            and frame_number - last_seen > ttl_frames
+        )
+    ]
+
+    for track_id in expired_ids:
+        trajectory_engine.remove_track(track_id)
+        tracker.remove_track(track_id)
+        speed_estimator.remove_track(track_id)
+
+        observed_gate_sides.pop(track_id, None)
+        gate_crossing_states.pop(track_id, None)
+        attempted_speed_track_ids.discard(track_id)
+        counted_speed_track_ids.discard(track_id)
+
+        track_last_seen.pop(track_id, None)
+
+    return len(expired_ids)
+
 
 def get_active_track_ids(result):
     """Mengambil Tracking ID yang terlihat pada frame saat ini."""
@@ -577,7 +638,7 @@ def get_active_track_ids(result):
 while True:
     if stop_requested:
         break
-    
+
     ret, frame = video.read()
 
     if not ret or frame is None:
@@ -639,6 +700,34 @@ while True:
         result
     )
 
+    # TRACK CACHE LIFECYCLE
+    # Catat frame terakhir setiap Tracking ID aktif.
+    for track_id in active_track_ids:
+        track_last_seen[track_id] = frame_ke
+
+    # Cleanup cache secara berkala.
+    if frame_ke % TRACK_CACHE_CLEANUP_INTERVAL == 0:
+        removed_count = cleanup_inactive_tracks(
+            frame_number=frame_ke,
+            track_last_seen=track_last_seen,
+            active_track_ids=active_track_ids,
+            trajectory_engine=trajectory_engine,
+            tracker=tracker,
+            speed_estimator=speed_estimator,
+            observed_gate_sides=observed_gate_sides,
+            gate_crossing_states=gate_crossing_states,
+            attempted_speed_track_ids=attempted_speed_track_ids,
+            counted_speed_track_ids=counted_speed_track_ids,
+            ttl_frames=TRACK_CACHE_TTL_FRAMES,
+        )
+
+        if removed_count > 0:
+            print(
+                f"TRACK CACHE CLEANUP | "
+                f"Frame={frame_ke} | "
+                f"Removed={removed_count}"
+            )
+
     update_trajectories(
         result,
         trajectory_engine,
@@ -697,6 +786,7 @@ while True:
         GATE_CROSSING_COOLDOWN_FRAMES,
         GATE_REARM_DISTANCE,
         GATE_HYSTERESIS_DISTANCE,
+        active_track_ids,
     )
 
     for event in gate_events:
@@ -768,13 +858,17 @@ while True:
     # SIMPAN HASIL SPEED PER KENDARAAN
     # ============================================================
 
-    for track_id, speed_result in (
-        speed_estimator.get_all_speeds().items()
-    ):
-
-        # Jangan simpan Tracking ID yang sama berulang kali.
-        if track_id in saved_speed_track_ids:
+    for track_id in active_track_ids:
+        if track_id in attempted_speed_track_ids:
             continue
+
+        speed_result = speed_estimator.get_result(
+            track_id
+        )
+
+        if speed_result is None:
+            continue
+
 
         speed_kmh = speed_result.get("speed_kmh")
         direction = speed_result.get("direction")
@@ -796,7 +890,12 @@ while True:
             )
         )
 
-        database_logger.save_vehicle_speed(
+        if track_id not in counted_speed_track_ids:
+            total_speed_kmh += speed_kmh
+            total_speed_count += 1
+            counted_speed_track_ids.add(track_id)
+
+        save_success = database_logger.save_vehicle_speed(
             track_id=track_id,
             vehicle_type=vehicle_type,
             direction=direction,
@@ -805,9 +904,14 @@ while True:
             frame_number=frame_ke,
         )
 
-        saved_speed_track_ids.add(
-            track_id
-        )
+        # Tandai sudah dicoba agar tidak retry otomatis.
+        attempted_speed_track_ids.add(track_id)
+
+        if not save_success:
+            print(
+                f"MYSQL SPEED GAGAL | Track ID={track_id} | "
+                "Tidak dilakukan retry otomatis"
+            )
 
     if (
         not CAMERA_CALIBRATION_MODE
@@ -892,7 +996,7 @@ while True:
             interval_vehicle_data,
             latest_vc_data,
         )
-        
+
         traffic_volume_engine.reset()
 
     if (
@@ -990,20 +1094,9 @@ while True:
         vehicle_data
     )
 
-    all_speed_results = (
-        speed_estimator.get_all_speeds()
-    )
-
-    valid_speeds = [
-        speed_result["speed_kmh"]
-        for speed_result
-        in all_speed_results.values()
-        if speed_result.get("speed_kmh") is not None
-    ]
-
     live_average_speed = (
-        sum(valid_speeds) / len(valid_speeds)
-        if valid_speeds
+        total_speed_kmh / total_speed_count
+        if total_speed_count > 0
         else 0.0
     )
 
@@ -1023,14 +1116,15 @@ while True:
         "status": latest_status,
     })
 
-    frame = draw_detection(
-        frame,
-        result,
-        speed_estimator,
-        tracker,
-    )
+
 
     if not HEADLESS_MODE:
+        frame = draw_detection(
+                frame,
+                result,
+                speed_estimator,
+                tracker,
+            )
 
         frame = draw_trajectories(
             frame,
@@ -1129,8 +1223,8 @@ while True:
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
-    
-            
+
+
 
 # ============================================================
 # BENCHMARK / SHUTDOWN

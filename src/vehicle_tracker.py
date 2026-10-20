@@ -66,3 +66,12 @@ class VehicleTracker:
             self.track_frames.get(track_id, 0)
             >= self.min_track_frames
         )
+
+    def remove_track(self, track_id):
+        """
+        Menghapus cache voting kendaraan
+        yang sudah dinyatakan tidak aktif.
+        """
+
+        self.track_frames.pop(track_id, None)
+        self.class_votes.pop(track_id, None)
