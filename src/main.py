@@ -1,4 +1,4 @@
-import cv2
+﻿import cv2
 import time
 import os
 import signal
@@ -19,6 +19,7 @@ from config import (
     VIDEO_PATH,
     MODEL_PATH,
     ACTIVE_CAMERA_NAME,
+    TARGET_PROCESSING_FPS,
     DEBUG_TRACK_ENABLED,
     DEBUG_TRACK_IDS,
     SHOW_ONLY_DEBUG_TRACKS,
@@ -81,6 +82,15 @@ selected_device = get_selected_device()
 # False:
 # - Tampilan dan web video stream berjalan seperti biasa.
 HEADLESS_MODE = True
+
+# ==========================================
+# TARGET FPS PEMROSESAN
+# ==========================================
+
+print(
+    f"Target Processing FPS : "
+    f"{TARGET_PROCESSING_FPS:.2f}"
+)
 
 print(
     f"Headless mode     : "
@@ -201,6 +211,28 @@ else:
 
 
 # ============================================================
+# FRAME SAMPLING CONFIG
+# ============================================================
+
+if TARGET_PROCESSING_FPS <= 0:
+    raise ValueError(
+        "TARGET_PROCESSING_FPS harus lebih besar dari 0."
+    )
+
+sampling_fps = min(TARGET_PROCESSING_FPS, fps)
+
+# Akumulator untuk memilih frame secara merata.
+sampling_accumulator = 0.0
+
+# Menghitung frame yang benar-benar masuk YOLO.
+processed_frame_count = 0
+
+print(
+    f"Sampling FPS       : {sampling_fps:.2f}"
+)
+
+
+# ============================================================
 # DATA / ENGINE
 # ============================================================
 
@@ -300,8 +332,14 @@ counted_speed_track_ids = set()
 total_speed_kmh = 0.0
 total_speed_count = 0
 
+# Statistik kecepatan khusus interval V/C
+window_speed_sum = 0.0
+window_speed_count = 0
+latest_window_average_speed = None
+
 benchmark_start_time = time.perf_counter()
 performance_last_time = time.perf_counter()
+performance_last_processed_count = 0
 performance_last_frame = 0
 benchmark_completed = False
 
@@ -672,6 +710,9 @@ while True:
             if video.isOpened():
                 reconnect_count += 1
 
+                # Mulai ulang fase sampling setelah RTSP reconnect.
+                sampling_accumulator = 0.0
+
                 print(
                     "Reconnect berhasil. "
                     f"Total reconnect: {reconnect_count}"
@@ -691,6 +732,21 @@ while True:
     consecutive_read_failures = 0
     frame_ke += 1
 
+    # ============================================================
+    # FRAME SAMPLING - SEBELUM YOLO
+    # ============================================================
+
+    # Akumulator mengikuti rasio FPS target terhadap FPS sumber.
+    sampling_accumulator += sampling_fps
+
+    if sampling_accumulator < fps:
+        continue
+
+    sampling_accumulator -= fps
+
+    # Hanya frame terpilih yang diproses YOLO.
+    processed_frame_count += 1
+
     result = track(frame)
 
     # Voting kelas selalu diperbarui sebelum event gate/speed diproses.
@@ -706,7 +762,7 @@ while True:
         track_last_seen[track_id] = frame_ke
 
     # Cleanup cache secara berkala.
-    if frame_ke % TRACK_CACHE_CLEANUP_INTERVAL == 0:
+    if processed_frame_count % TRACK_CACHE_CLEANUP_INTERVAL == 0:
         removed_count = cleanup_inactive_tracks(
             frame_number=frame_ke,
             track_last_seen=track_last_seen,
@@ -893,6 +949,12 @@ while True:
         if track_id not in counted_speed_track_ids:
             total_speed_kmh += speed_kmh
             total_speed_count += 1
+
+            # Kecepatan interval hanya untuk arah V/C.
+            if direction in VC_DIRECTIONS:
+                window_speed_sum += speed_kmh
+                window_speed_count += 1
+
             counted_speed_track_ids.add(track_id)
 
         save_success = database_logger.save_vehicle_speed(
@@ -918,9 +980,15 @@ while True:
         and traffic_volume_engine.is_window_complete()
         ):
 
+        interval_elapsed_seconds = (
+            traffic_volume_engine.get_elapsed_seconds()
+        )
+
         volume_smp_per_hour = (
             traffic_volume_engine
-            .get_volume_per_hour()
+            .get_volume_per_hour(
+                elapsed_seconds=interval_elapsed_seconds
+            )
         )
 
         vc_ratio = vc_ratio_engine.calculate(
@@ -997,6 +1065,16 @@ while True:
             latest_vc_data,
         )
 
+        # Rata-rata kecepatan pada interval V/C yang baru selesai.
+        latest_window_average_speed = (
+            window_speed_sum / window_speed_count
+            if window_speed_count > 0
+            else None
+        )
+
+        window_speed_sum = 0.0
+        window_speed_count = 0
+
         traffic_volume_engine.reset()
 
     if (
@@ -1013,8 +1091,8 @@ while True:
         )
 
         interval_frames = (
-            frame_ke
-            - performance_last_frame
+            processed_frame_count
+            - performance_last_processed_count
         )
 
         processing_fps = (
@@ -1089,6 +1167,7 @@ while True:
 
         performance_last_time = performance_now
         performance_last_frame = frame_ke
+        performance_last_processed_count = processed_frame_count
 
     vehicle_data = update_vehicle_total(
         vehicle_data
@@ -1110,6 +1189,7 @@ while True:
         "ambulans": vehicle_data["ambulans"],
         "total": vehicle_data["total"],
         "average_speed": live_average_speed,
+        "interval_average_speed": latest_window_average_speed,
         "volume": latest_volume_smp_per_hour,
         "capacity": road_capacity,
         "vc_ratio": latest_vc_ratio,
@@ -1126,24 +1206,7 @@ while True:
                 tracker,
             )
 
-        frame = draw_trajectories(
-            frame,
-            trajectory_engine,
-            active_track_ids,
-            debug_track_ids=(
-                DEBUG_TRACK_IDS
-                if DEBUG_TRACK_ENABLED
-                else set()
-            ),
-            show_only_debug=(
-                SHOW_ONLY_DEBUG_TRACKS
-                if DEBUG_TRACK_ENABLED
-                else False
-            ),
-            keep_debug_visible=(
-                KEEP_DEBUG_TRAJECTORY_VISIBLE
-            ),
-        )
+        # TRAJECTORY DRAWING DISABLED (performance test)
 
         frame = draw_virtual_gate(
             frame,
@@ -1236,7 +1299,7 @@ benchmark_processing_seconds = (
 )
 
 benchmark_average_fps = (
-    frame_ke / benchmark_processing_seconds
+    processed_frame_count / benchmark_processing_seconds
     if benchmark_processing_seconds > 0
     else 0.0
 )
@@ -1268,7 +1331,7 @@ if frame_ke > 0:
         ),
         device=benchmark_device,
         run_status=benchmark_status,
-        processed_frames=frame_ke,
+        processed_frames=processed_frame_count,
         source_fps=fps,
         processing_seconds=benchmark_processing_seconds,
         average_fps=benchmark_average_fps,
@@ -1299,7 +1362,8 @@ if frame_ke > 0:
     print(f"Sumber         : {source_name}")
     print(f"Device         : {benchmark_device}")
     print(f"Status         : {benchmark_status}")
-    print(f"Frame diproses : {frame_ke}")
+    print(f"Frame dibaca   : {frame_ke}")
+    print(f"Frame diproses : {processed_frame_count}")
     print(
         f"Waktu proses   : "
         f"{benchmark_processing_seconds:.2f} detik"

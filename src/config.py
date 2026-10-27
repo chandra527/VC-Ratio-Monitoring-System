@@ -81,6 +81,16 @@ CAMERA_PROFILE = get_camera_profile(
     ACTIVE_CAMERA_CODE
 )
 
+# ==========================================
+# TARGET FPS PEMROSESAN YOLO
+# ==========================================
+TARGET_PROCESSING_FPS = float(
+    CAMERA_PROFILE.get(
+        "target_processing_fps",
+        25.0
+    )
+)
+
 CAMERA_CALIBRATION_MODE = (
     not CAMERA_PROFILE["vc_directions"]
     or CAMERA_PROFILE["road_base_capacity"] is None

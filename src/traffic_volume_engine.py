@@ -66,7 +66,7 @@ class TrafficVolumeEngine:
 
         return total_smp
 
-    def get_volume_per_hour(self):
+    def get_volume_per_hour(self, elapsed_seconds=None):
         """
         Mengkonversi jumlah smp
         dalam window menjadi smp/jam.
@@ -76,12 +76,18 @@ class TrafficVolumeEngine:
             self.get_total_smp()
         )
 
-        if self.window_seconds <= 0:
+        elapsed = (
+            self.get_elapsed_seconds()
+            if elapsed_seconds is None
+            else elapsed_seconds
+        )
+
+        if elapsed <= 0:
             return 0.0
 
         return (
             total_smp
-            / self.window_seconds
+            / elapsed
             * 3600
         )
 

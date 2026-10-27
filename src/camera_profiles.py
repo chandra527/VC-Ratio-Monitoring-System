@@ -21,36 +21,20 @@ CAMERA_PROFILES = {
         "name": "Kamera Jl. Pattimura",
         "road_width_m": 10.0,
      
-        "virtual_gate_start": (
-            1748,
-            638,
-        ),
+        #"virtual_gate_start": (804, 923),
 
-        "virtual_gate_end": (
-            796,
-            943,
-        ),
+        "virtual_gate_start": (1743, 679),
+
+        "virtual_gate_end": (804, 923),
 
         # Konfigurasi speed line
-        "speed_line_a_start": (
-            945,
-            1244,
-        ),
+        "speed_line_a_start": (975, 1222),
 
-        "speed_line_a_end": (
-            2168,
-            758,
-        ),
+        "speed_line_a_end": (2156, 819),
 
-        "speed_line_b_start": (
-            696,
-            786,
-        ),
+        "speed_line_b_start": (680, 722),
 
-        "speed_line_b_end": (
-            1461,
-            569,
-        ),
+        "speed_line_b_end": (1391, 571),
 
         "speed_distance_meters": 8,
 
@@ -66,9 +50,12 @@ CAMERA_PROFILES = {
 
         "target_direction": "B_TO_A",
 
+        # Target FPS pemrosesan YOLO (eksperimen)
+        "target_processing_fps": 15.0,
+
         # Konfigurasi kapasitas jalan
-        "road_base_capacity": 1650,
-        "road_fc_width": 0.91,
+        "road_base_capacity": 3400,
+        "road_fc_width": 1.08,
         "road_fc_direction": 1.0,
         "road_fc_side_friction": 0.77,
         "road_fc_city_size": 0.94,
@@ -84,37 +71,19 @@ CAMERA_PROFILES = {
         "name": "Kamera Jl. Jendral Urip",
         "road_width_m": 9.5,
 
-        "virtual_gate_start": (
-            1670,
-            850,
-        ),
+        "virtual_gate_start": (1833, 702),
 
-        "virtual_gate_end": (
-            775,
-            555,
-        ),
+        "virtual_gate_end": (729, 467),
 
         # Line A = sisi dekat kamera
-        "speed_line_a_start": (
-            1459,
-            1165,
-        ),
+        "speed_line_a_start": (1583, 1022),
 
-        "speed_line_a_end": (
-            360,
-            689,
-        ),
+        "speed_line_a_end": (243, 627),
 
         # Line B = sisi jauh dari kamera
-        "speed_line_b_start": (
-            1833,
-            604,
-        ),
+        "speed_line_b_start": (1999, 475),
 
-        "speed_line_b_end": (
-            1091,
-            450,
-        ),
+        "speed_line_b_end": (1125, 343),
 
         "speed_distance_meters": 10,
 
@@ -132,7 +101,10 @@ CAMERA_PROFILES = {
         # Akan ditentukan dari hasil runtime arah crossing.
         "target_direction": None,
 
-        # Belum dikalibrasi berdasarkan kondisi jalan.
+        # Pertahankan FPS normal
+        "target_processing_fps": 25.0,
+
+        # sudah ada penyesuaian dengan PKJI 2023.
         "road_base_capacity": 2800,
         "road_fc_width": 1.27,
         "road_fc_direction": 1.0,
