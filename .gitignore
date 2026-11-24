@@ -59,3 +59,31 @@ output/*.db
 benchmark/raw/*.json
 benchmark/raw/*.csv
 
+
+# VC-Ratio local recordings and outputs (review 2026-11-23)
+# Dataset videos are not source; audit data/ before accepting this rule.
+data/
+**/*.mkv
+**/*.dav
+**/*.mp4
+**/*.avi
+**/*.mov
+**/*.m4v
+**/*.h264
+**/*.h265
+
+# Preserve testing/*.py source while excluding generated results
+testing/output/
+testing/**/output/
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment and backup artifacts
+.env.*
+!.env.example
+backup-closing-v2.2/
+*.bak
+*.bak-*
+*.backup-*
+*.before-*.bak

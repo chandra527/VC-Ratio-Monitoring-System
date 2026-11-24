@@ -1,3 +1,7 @@
+> **CATATAN VERSI — 23 November 2026:** Dokumen berikut memuat sejarah/rancangan awal proyek, termasuk referensi SQLite, roadmap RTSP dan status versi lama. **Bukan deskripsi penuh sistem aktif V2.2.** Untuk kondisi terbaru dua kamera, integrasi Laravel/Offline Analyzer dan keterbatasannya, lihat [STATUS_INTEGRASI_V22_2026-11-23.md](STATUS_INTEGRASI_V22_2026-11-23.md). Bagian historis di bawah dipertahankan untuk jejak pengembangan.
+
+---
+
 # VC Ratio Monitoring System
 
 ## System Architecture

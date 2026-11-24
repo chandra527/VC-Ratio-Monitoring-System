@@ -1,5 +1,7 @@
 # 🚦 VC Ratio Monitoring System
 
+> **PEMBARUAN V2.2 (23 November 2026):** README ini juga memuat dokumentasi dan roadmap dari tahap awal pengembangan. Sistem saat ini telah diuji untuk monitoring realtime dua kamera (Jl. Pattimura dan Jl. Jenderal Urip) serta Offline Analyzer melalui Laravel. Untuk status, batas pengujian, dan catatan kalibrasi terkini, lihat [Status Integrasi V2.2](docs/STATUS_INTEGRASI_V22_2026-11-23.md) dan [CHANGELOG](CHANGELOG.md). Informasi historis di bawah jangan dianggap sebagai konfigurasi produksi terkini.
+
 ![Banner](docs/images/banner.png)
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
