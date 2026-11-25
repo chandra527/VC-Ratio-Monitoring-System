@@ -11,7 +11,7 @@ class SpeedEstimator:
         line_b_start,
         line_b_end,
         fps,
-        distance_meters=10,
+        distance_meters,
     ):
 
         self.line_a_start = line_a_start
@@ -25,6 +25,7 @@ class SpeedEstimator:
 
         # Posisi kendaraan pada frame sebelumnya
         self.previous_point = {}
+        self.previous_frame = {}
 
         # Menyimpan garis pertama yang dilewati kendaraan
         # Contoh:
@@ -106,7 +107,7 @@ class SpeedEstimator:
         )
 
         if not crossed_infinite_line:
-            return False
+            return None
 
         # ==========================================
         # CARI TITIK POTONG TRAJECTORY DENGAN GARIS
@@ -126,7 +127,7 @@ class SpeedEstimator:
 
         # Garis sejajar / hampir sejajar
         if denominator == 0:
-            return False
+            return None
 
         t = (
             (x1 - x3) * (y3 - y4)
@@ -146,11 +147,7 @@ class SpeedEstimator:
         # Crossing sah hanya jika:
         # - titik potong berada di antara old_point-current_point
         # - titik potong berada di antara endpoint speed line
-        return (
-            0.0 <= t <= 1.0
-            and
-            0.0 <= u <= 1.0
-        )
+        return t if (0.0 <= t <= 1.0 and 0.0 <= u <= 1.0) else None
 
 
     # ==========================================
@@ -163,6 +160,7 @@ class SpeedEstimator:
         line_name,
         frame_ke,
         vehicle_label,
+        crossing_frame=None,
     ):
 
         if track_id in self.first_crossing:
@@ -173,6 +171,7 @@ class SpeedEstimator:
         ] = {
             "line": line_name,
             "frame": frame_ke,
+            "crossing_frame": crossing_frame if crossing_frame is not None else frame_ke,
         }
 
         print(
@@ -193,6 +192,7 @@ class SpeedEstimator:
         crossed_line_name,
         frame_ke,
         vehicle_label,
+        crossing_frame=None,
     ):
 
         if track_id not in self.first_crossing:
@@ -209,6 +209,8 @@ class SpeedEstimator:
 
         first_line = first_data["line"]
         first_frame = first_data["frame"]
+        first_crossing_frame = first_data.get("crossing_frame", first_frame)
+        current_crossing_frame = crossing_frame if crossing_frame is not None else frame_ke
 
         # Kalau masih crossing garis yang sama,
         # jangan hitung speed
@@ -243,9 +245,9 @@ class SpeedEstimator:
         # ======================================
 
         frame_difference = (
-            frame_ke
+            current_crossing_frame
             -
-            first_frame
+            first_crossing_frame
         )
 
         if (
@@ -306,196 +308,68 @@ class SpeedEstimator:
     # UPDATE
     # ==========================================
 
-    def update(
-        self,
-        result,
-        frame_ke,
-        vehicle_tracker=None,
-    ):
+    def update(self, result, frame_ke, vehicle_tracker=None):
+        if result.boxes is None:
+            return
 
         for box in result.boxes:
-
             if box.id is None:
                 continue
 
-            track_id = int(
-                box.id[0]
-            )
+            track_id = int(box.id[0])
+            cls = int(box.cls[0])
+            class_name = CLASS_NAMES[cls]
 
-            cls = int(
-                box.cls[0]
-            )
-
-            class_name = (
-                CLASS_NAMES[cls]
-            )
-
-            if (
-                class_name
-                not in VEHICLE_CLASSES
-            ):
+            if class_name not in VEHICLE_CLASSES:
                 continue
 
-
-            # ==================================
-            # LABEL KENDARAAN
-            # ==================================
-
-            vehicle_label = (
-                VEHICLE_CLASSES[
-                    class_name
-                ]["label"]
-            )
-
+            vehicle_label = VEHICLE_CLASSES[class_name]["label"]
             if vehicle_tracker is not None:
+                stable_label = vehicle_tracker.get_vehicle_label(track_id)
+                if stable_label is not None:
+                    vehicle_label = stable_label
 
-                stable_label = (
-                    vehicle_tracker
-                    .get_vehicle_label(
-                        track_id
-                    )
-                )
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            current_point = ((x1 + x2) // 2, y2)
 
-                if (
-                    stable_label
-                    is not None
+            old_point = self.previous_point.get(track_id)
+            previous_frame = self.previous_frame.get(track_id)
+
+            if old_point is not None and previous_frame is not None:
+                crossings = []
+                for name, start, end in (
+                    ("A", self.line_a_start, self.line_a_end),
+                    ("B", self.line_b_start, self.line_b_end),
                 ):
-                    vehicle_label = (
-                        stable_label
+                    t = self._crossed_line(old_point, current_point, start, end)
+                    if t is not None:
+                        crossing_frame = previous_frame + t * (frame_ke - previous_frame)
+                        crossings.append((crossing_frame, name))
+
+                # Jika kedua garis terpotong dalam satu langkah,
+                # urutkan menurut waktu crossing hasil interpolasi.
+                crossings.sort(key=lambda item: item[0])
+
+                for crossing_frame, name in crossings:
+                    print(
+                        f"[SPEED DEBUG] ID {track_id} "
+                        f"| jenis={vehicle_label} "
+                        f"| crossed={name} "
+                        f"| frame_interp={crossing_frame:.3f}"
                     )
+                    if track_id not in self.first_crossing:
+                        self._register_first_crossing(
+                            track_id, name, frame_ke, vehicle_label,
+                            crossing_frame=crossing_frame,
+                        )
+                    else:
+                        self._calculate_if_complete(
+                            track_id, name, frame_ke, vehicle_label,
+                            crossing_frame=crossing_frame,
+                        )
 
-
-            # ==================================
-            # TITIK KENDARAAN
-            # ==================================
-
-            x1, y1, x2, y2 = map(
-                int,
-                box.xyxy[0]
-            )
-
-            current_point = (
-                (x1 + x2) // 2,
-                y2,
-            )
-
-            old_point = (
-                self.previous_point.get(
-                    track_id
-                )
-            )
-
-            if old_point is None:
-
-                self.previous_point[
-                    track_id
-                ] = current_point
-
-                continue
-
-
-            # ==================================
-            # CEK SPEED LINE A
-            # ==================================
-
-            crossed_line_a = (
-                self._crossed_line(
-                    old_point,
-                    current_point,
-                    self.line_a_start,
-                    self.line_a_end,
-                )
-            )
-
-
-            # ==================================
-            # CEK SPEED LINE B
-            # ==================================
-
-            crossed_line_b = (
-                self._crossed_line(
-                    old_point,
-                    current_point,
-                    self.line_b_start,
-                    self.line_b_end,
-                )
-            )
-
-            if crossed_line_a or crossed_line_b:
-
-                print(
-                    f"[SPEED DEBUG] "
-                    f"ID {track_id} "
-                    f"| jenis={vehicle_label} "
-                    f"| crossed_A={crossed_line_a} "
-                    f"| crossed_B={crossed_line_b} "
-                    f"| point={current_point}"
-                )
-
-
-            # ==================================
-            # JIKA MENYENTUH LINE A
-            # ==================================
-
-            if crossed_line_a:
-
-                if (
-                    track_id
-                    not in self.first_crossing
-                ):
-
-                    self._register_first_crossing(
-                        track_id,
-                        "A",
-                        frame_ke,
-                        vehicle_label,
-                    )
-
-                else:
-
-                    self._calculate_if_complete(
-                        track_id,
-                        "A",
-                        frame_ke,
-                        vehicle_label,
-                    )
-
-
-            # ==================================
-            # JIKA MENYENTUH LINE B
-            # ==================================
-
-            if crossed_line_b:
-
-                if (
-                    track_id
-                    not in self.first_crossing
-                ):
-
-                    self._register_first_crossing(
-                        track_id,
-                        "B",
-                        frame_ke,
-                        vehicle_label,
-                    )
-
-                else:
-
-                    self._calculate_if_complete(
-                        track_id,
-                        "B",
-                        frame_ke,
-                        vehicle_label,
-                    )
-
-
-            # ==================================
-            # SIMPAN POSISI
-            # ==================================
-
-            self.previous_point[
-                track_id
-            ] = current_point
+            self.previous_point[track_id] = current_point
+            self.previous_frame[track_id] = frame_ke
 
 
     # ==========================================
@@ -576,5 +450,6 @@ class SpeedEstimator:
         """
 
         self.previous_point.pop(track_id, None)
+        self.previous_frame.pop(track_id, None)
         self.first_crossing.pop(track_id, None)
         self.vehicle_speeds.pop(track_id, None)

@@ -51,7 +51,7 @@ CAMERA_PROFILES = {
         "target_direction": "B_TO_A",
 
         # Target FPS pemrosesan YOLO (eksperimen)
-        "target_processing_fps": 15.0,
+        "target_processing_fps": 10.0,
 
         # Konfigurasi kapasitas jalan
         "road_base_capacity": 3400,
@@ -101,8 +101,8 @@ CAMERA_PROFILES = {
         # Akan ditentukan dari hasil runtime arah crossing.
         "target_direction": None,
 
-        # Pertahankan FPS normal
-        "target_processing_fps": 25.0,
+        # Target FPS pemrosesan YOLO (eksperimen)
+        "target_processing_fps": 10.0,
 
         # sudah ada penyesuaian dengan PKJI 2023.
         "road_base_capacity": 2800,

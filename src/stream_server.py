@@ -8,6 +8,7 @@ app = Flask(__name__)
 @app.after_request
 def add_cors_headers(response):
     allowed_origins = {
+        "http://localhost:8000",
         "http://127.0.0.1:8000",
         "https://dishubptk-vc-ratio.ellokale.id",
     }

@@ -1,4 +1,4 @@
-﻿import cv2
+import cv2
 import time
 import os
 import signal
@@ -14,11 +14,14 @@ from vehicle_tracker import VehicleTracker
 from line_counter import draw_speed_lines
 from csv_logger import CSVLogger
 from database_logger import DatabaseLogger
+from vehicle_event_logger import VehicleEventLogger
+from vehicle_event_sender import VehicleEventSender
 from speed_estimator import SpeedEstimator
 from config import (
     VIDEO_PATH,
     MODEL_PATH,
     ACTIVE_CAMERA_NAME,
+    ACTIVE_CAMERA_CODE,
     TARGET_PROCESSING_FPS,
     DEBUG_TRACK_ENABLED,
     DEBUG_TRACK_IDS,
@@ -82,6 +85,7 @@ selected_device = get_selected_device()
 # False:
 # - Tampilan dan web video stream berjalan seperti biasa.
 HEADLESS_MODE = True
+WEB_STREAM_ENABLED = True
 
 # ==========================================
 # TARGET FPS PEMROSESAN
@@ -321,6 +325,18 @@ if not HEADLESS_MODE:
 
 csv_logger = CSVLogger()
 database_logger = DatabaseLogger()
+
+# Antrean event kendaraan per kamera.
+vehicle_event_logger = VehicleEventLogger(ACTIVE_CAMERA_CODE)
+vehicle_event_sender = VehicleEventSender(
+    event_logger=vehicle_event_logger,
+    database_config=database_logger.database_config,
+    interval=1.0,
+    retry_interval=5.0,
+    batch_size=100,
+)
+vehicle_event_sender.start()
+print('Vehicle event sender: ACTIVE')
 
 # Tracking ID yang sudah dicoba disimpan ke MySQL.
 attempted_speed_track_ids = set()
@@ -890,6 +906,17 @@ while True:
             if vehicle_type in vehicle_data:
                 vehicle_data[vehicle_type] += 1
 
+                try:
+                    vehicle_event_logger.record(
+                        vehicle_type,
+                        direction,
+                    )
+                except Exception as exc:
+                    print(
+                        'VEHICLE EVENT ERROR | '
+                        f'ID #{track_id} | {exc}'
+                    )
+
             traffic_volume_engine.add_vehicle(
                 vehicle_type
             )
@@ -1198,6 +1225,59 @@ while True:
 
 
 
+    # Web streaming tanpa mengaktifkan GUI Python.
+    # Tidak menjalankan inferensi YOLO tambahan.
+    if WEB_STREAM_ENABLED and HEADLESS_MODE:
+        current_stream_time = time.perf_counter()
+
+        if current_stream_time - last_stream_time >= STREAM_FRAME_INTERVAL:
+            stream_frame = frame.copy()
+
+            stream_frame = draw_detection(
+                stream_frame,
+                result,
+                speed_estimator,
+                tracker,
+            )
+
+            stream_frame = draw_virtual_gate(
+                stream_frame,
+                virtual_gate,
+            )
+
+            stream_frame = draw_virtual_gate_summary(
+                stream_frame,
+                virtual_gate_count,
+            )
+
+            stream_frame = draw_speed_lines(
+                stream_frame,
+                SPEED_LINE_A_START,
+                SPEED_LINE_A_END,
+                SPEED_LINE_B_START,
+                SPEED_LINE_B_END,
+            )
+
+            # Optimasi ukuran frame khusus streaming web.
+            stream_height, stream_width = stream_frame.shape[:2]
+            if stream_width > 960:
+                stream_frame = cv2.resize(
+                    stream_frame,
+                    (960, round(stream_height * 960 / stream_width)),
+                    interpolation=cv2.INTER_AREA,
+                )
+
+            encode_ok, jpeg_buffer = cv2.imencode(
+                ".jpg",
+                stream_frame,
+                [cv2.IMWRITE_JPEG_QUALITY, 65],
+            )
+
+            if encode_ok:
+                update_stream_frame(jpeg_buffer.tobytes())
+
+            last_stream_time = current_stream_time
+
     if not HEADLESS_MODE:
         frame = draw_detection(
                 frame,
@@ -1428,6 +1508,11 @@ print(
     f"{sum(virtual_gate_count.values())}"
 )
 print("=" * 60)
+
+# Hentikan sender pada shutdown normal.
+sender_stopped = vehicle_event_sender.stop(timeout=10)
+if not sender_stopped:
+    print('WARNING: Vehicle event sender belum berhenti.')
 
 video.release()
 cv2.destroyAllWindows()
